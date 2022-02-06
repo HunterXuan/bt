@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BT</title>
+    <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css" />
+    <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+    <div id="app">
+        <el-container v-loading="loading">
+            <el-main>
+
+                <el-divider class="main-divider">Torrent</el-divider>
+
+                <el-row :gutter="36">
+                    <el-col :span="8">
+                        <el-card class="box-card index-card">
+                            <div class="number">{{ index.torrent.total }}</div>
+                            <div class="comment">Total</div>
+                        </el-card>
+                    </el-col>
+
+                    <el-col :span="8">
+                        <el-card class="box-card index-card">
+                            <div class="number">{{ index.torrent.active }}</div>
+                            <div class="comment">Active</div>
+                        </el-card>
+                    </el-col>
+
+                    <el-col :span="8">
+                        <el-card class="box-card index-card">
+                            <div class="number">{{ index.torrent.dead }}</div>
+                            <div class="comment">Dead</div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+
+                <el-divider class="main-divider">Peer</el-divider>
+
+                <el-row :gutter="36">
+                    <el-col :span="8">
+                        <el-card class="box-card index-card">
+                            <div class="number">{{ index.peer.total }}</div>
+                            <div class="comment">Total</div>
+                        </el-card>
+                    </el-col>
+
+                    <el-col :span="8">
+                        <el-card class="box-card index-card">
+                            <div class="number">{{ index.peer.seeder }}</div>
+                            <div class="comment">Seeder</div>
+                        </el-card>
+                    </el-col>
+
+                    <el-col :span="8">
+                        <el-card class="box-card index-card">
+                            <div class="number">{{ index.peer.leecher }}</div>
+                            <div class="comment">Leecher</div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+
+                <el-divider class="main-divider">Traffic</el-divider>
+
+                <el-row :gutter="36" style="margin-top: 24px;">
+                    <el-col :span="8">
+                        <el-card class="box-card index-card">
+                            <div class="number">{{ index.traffic.total }}</div>
+                            <div class="comment">Total</div>
+                        </el-card>
+                    </el-col>
+
+                    <el-col :span="8">
+                        <el-card class="box-card index-card">
+                            <div class="number">{{ index.traffic.upload }}</div>
+                            <div class="comment">Upload</div>
+                        </el-card>
+                    </el-col>
+
+                    <el-col :span="8">
+                        <el-card class="box-card index-card">
+                            <div class="number">{{ index.traffic.download }}</div>
+                            <div class="comment">Download</div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+
+                <el-divider class="main-divider">Hot</el-divider>
+
+                <div>
+                    <el-table :data="hot" stripe style="width: 100%">
+                        <el-table-column fixed prop="info_hash" label="Hash"></el-table-column>
+                        <el-table-column prop="seeder_count" label="Seeder" width="120"></el-table-column>
+                        <el-table-column prop="leecher_count" label="Leecher" width="120"></el-table-column>
+                        <el-table-column prop="snatcher_count" label="Snatcher" width="120"></el-table-column>
+                        <el-table-column fixed="right" label="Operation" width="120">
+                            <template #default="scope">
+                                <el-button type="text" size="small" @click="handleDownloadBtnClick(scope.$index)">Download</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </el-main>
+        </el-container>
+    </div>
+
+    <script src="//unpkg.com/vue@next"></script>
+    <script src="//unpkg.com/element-plus"></script>
+    <script src="/assets/js/main.js"></script>
+</body>
+</html>

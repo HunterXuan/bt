@@ -1,0 +1,21 @@
+html {
+    background: #99CCFF;
+}
+
+.main-divider .el-divider__text {
+    background: #99CCFF;
+}
+
+.index-card .el-card__body {
+    text-align: center;
+}
+
+.index-card .el-card__body .number {
+    font-size: xxx-large;
+    font-weight: bolder;
+}
+
+.index-card .el-card__body .comment {
+    color: #909399;
+    font-size: xx-small;
+}

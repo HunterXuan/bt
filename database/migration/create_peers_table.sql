@@ -1,0 +1,20 @@
+CREATE TABLE `peers` (
+    `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+    `created_at` datetime(3) DEFAULT NULL,
+    `updated_at` datetime(3) DEFAULT NULL,
+    `torrent_id` bigint(20) unsigned NOT NULL,
+    `peer_id` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `agent` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `ipv4` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `ipv6` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+    `port` int(10) unsigned NOT NULL,
+    `uploaded_bytes` bigint(20) unsigned NOT NULL,
+    `downloaded_bytes` bigint(20) unsigned NOT NULL,
+    `left_bytes` bigint(20) unsigned NOT NULL,
+    `is_seeder` tinyint(3) unsigned NOT NULL,
+    `is_connectable` tinyint(3) unsigned NOT NULL,
+    `finished_at` datetime(3) DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_peers_torrent_id` (`torrent_id`),
+    KEY `idx_peers_peer_id` (`peer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

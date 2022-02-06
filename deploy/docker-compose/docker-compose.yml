@@ -1,0 +1,35 @@
+version: "3"
+
+services:
+  bt:
+    depends_on:
+      - mysql
+    image: hunterxuan/bt
+    ports:
+      - "8888:8888"
+    environment:
+      APP_NAME: BT
+      APP_MODE: dev
+      APP_LISTEN_ADDR: 127.0.0.1:8888
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: bt
+      DB_USER: root
+      DB_PASS: 123456
+    restart: always
+    networks:
+      - default
+
+  mysql:
+    image: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      TZ: "Asia/Shanghai"
+    restart: always
+    networks:
+      - default
+
+networks:
+  default:

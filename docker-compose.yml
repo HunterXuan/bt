@@ -1,0 +1,25 @@
+version: "3"
+services:
+  mysql:
+    image: mysql
+    ports:
+      - "3306:3306"
+    restart: always
+    networks:
+      - default
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      TZ: "Asia/Shanghai"
+
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    restart: always
+    environment:
+      TZ: "Asia/Shanghai"
+    networks:
+      - default
+
+networks:
+  default:
