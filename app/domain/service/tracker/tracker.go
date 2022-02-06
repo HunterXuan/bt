@@ -292,5 +292,9 @@ func retrievePeerList(ctx *gin.Context, torrent *model.Torrent, req *trackerReq.
 
 // 获取同伴数量
 func calPeerLimitCount(numWanted uint8) int {
-	return int(numWanted)
+	if numWanted > 0 && numWanted < 50 {
+		return int(numWanted)
+	}
+
+	return 50
 }
