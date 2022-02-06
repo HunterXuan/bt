@@ -82,7 +82,7 @@ func (s AnnounceResponse) BEncode(torrent *model.Torrent, modelSlice interface{}
 // 新种子 10 分钟，旧种子 60 分钟
 func genInterval(createdAt time.Time) uint32 {
 	diffSeconds := time.Now().Unix() - createdAt.Unix()
-	if diffSeconds <= 0 {
+	if diffSeconds < 0 {
 		return 0
 	}
 	return uint32(math.Round(3600 / (1 + 5*math.Exp(float64(-diffSeconds)/60/10000))))
