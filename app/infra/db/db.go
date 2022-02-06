@@ -35,5 +35,12 @@ func InitDB() {
 		_ = DB.AutoMigrate(&model.Torrent{}, &model.Peer{})
 	}
 
+	sqlDB, err := DB.DB()
+	if err != nil {
+		log.Fatalf("Err: %v", err)
+	}
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+
 	log.Println("DB Initialized!")
 }
