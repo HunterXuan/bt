@@ -78,14 +78,14 @@ func (s AnnounceResponse) BEncode(torrent *model.Torrent, modelSlice interface{}
 }
 
 // 计算请求时间间隔，防止大量请求同时发生
-// interval = c/(1+a*e^(-kx)); c = 3600; a = 5; k = 0.0001
-// 新种子 10 分钟，旧种子 60 分钟
+// interval = c/(1+a*e^(-kx)); c = 7200; a = 3; k = 0.0001
+// 新种子 30 分钟，旧种子 120 分钟
 func genInterval(createdAt time.Time) uint32 {
 	diffSeconds := time.Now().Unix() - createdAt.Unix()
 	if diffSeconds < 0 {
 		return 0
 	}
-	return uint32(math.Round(3600 / (1 + 5*math.Exp(float64(-diffSeconds)/60/10000))))
+	return uint32(math.Round(7200 / (1 + 3*math.Exp(float64(-diffSeconds)/60/10000))))
 }
 
 // 生成非压缩的同伴列表
