@@ -4,6 +4,7 @@ import (
 	customError "github.com/HunterXuan/bt/app/infra/util/error"
 	trackerUtil "github.com/HunterXuan/bt/app/infra/util/tracker"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net"
 )
 
@@ -34,10 +35,12 @@ func (request *AnnounceRequest) ValidateRequest(ctx *gin.Context) *customError.C
 
 	// 校验参数格式
 	if err := ctx.ShouldBind(request); err != nil {
+		log.Println("AnnounceRequest ValidateRequest ShouldBind Err:", err)
 		return customError.NewBadRequestError("TRACKER__INVALID_PARAMS")
 	}
 
 	if err := request.Refine(ctx); err != nil {
+		log.Println("AnnounceRequest ValidateRequest Refine Err:", err)
 		return customError.NewBadRequestError("TRACKER__INVALID_PARAMS")
 	}
 
