@@ -15,7 +15,7 @@ func InitDB() {
 	log.Println("DB Initializing...")
 
 	// Generate connection string
-	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4&parseTime=True",
+	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4&parseTime=True&loc=Local",
 		config.Config.GetString("DB_USER"),
 		config.Config.GetString("DB_PASS"),
 		config.Config.GetString("DB_HOST"),
