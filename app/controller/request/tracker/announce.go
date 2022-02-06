@@ -9,11 +9,11 @@ import (
 )
 
 type AnnounceRequest struct {
-	Agent           string `header:"User-Agent"`                        // 客户端
-	OriInfoHash     string `form:"info_hash" binding:"required,len=20"` // 客户端上报的种子哈希码
-	OriPeerID       string `form:"peer_id" binding:"required,len=20"`   // 客户端上报的同伴ID
-	InfoHash        string ``                                           // 转换过后的哈希码
-	PeerID          string ``                                           // 转换过后的同伴ID
+	Agent           string `header:"User-Agent"`                 // 客户端
+	OriInfoHash     string `form:"info_hash" binding:"required"` // 客户端上报的种子哈希码
+	OriPeerID       string `form:"peer_id" binding:"required"`   // 客户端上报的同伴ID
+	InfoHash        string ``                                    // 转换过后的哈希码
+	PeerID          string ``                                    // 转换过后的同伴ID
 	Port            uint32 `form:"port" binding:"min=1,max=65535"`
 	DownloadedBytes uint64 `form:"downloaded"`
 	UploadedBytes   uint64 `form:"uploaded"`
