@@ -40,7 +40,7 @@ func InitDB() {
 		log.Fatalf("Err: %v", err)
 	}
 	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetMaxOpenConns(30)
 
 	log.Println("DB Initialized!")
 }
