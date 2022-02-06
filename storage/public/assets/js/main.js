@@ -24,7 +24,20 @@ const App = {
     },
     mounted: function () {
         fetch("/stats").then(res => res.json()).then((res) => {
-            this.index = res.data.index || this.index;
+            if (res.data.index) {
+                const resIndexData = res.data.index;
+                this.index.torrent.total = this.humanizeAmount(resIndexData.torrent.total);
+                this.index.torrent.active = this.humanizeAmount(resIndexData.torrent.active);
+                this.index.torrent.dead = this.humanizeAmount(resIndexData.torrent.dead);
+
+                this.index.peer.total = this.humanizeAmount(resIndexData.peer.total);
+                this.index.peer.seeder = this.humanizeAmount(resIndexData.peer.seeder);
+                this.index.peer.leecher = this.humanizeAmount(resIndexData.peer.leecher);
+
+                this.index.traffic.total = this.humanizeAmount(resIndexData.traffic.total, 'memory');
+                this.index.traffic.upload = this.humanizeAmount(resIndexData.traffic.upload, 'memory');
+                this.index.traffic.download = this.humanizeAmount(resIndexData.traffic.download, 'memory');
+            }
             this.hot = res.data.hot || this.hot;
         }).catch((err) => {
             console.error(err);
@@ -38,6 +51,31 @@ const App = {
                 const hashInfo = this.hot[index].info_hash;
                 window.open('magnet:?xt=urn:btih:' + hashInfo + '&tr=' + window.location.href + 'announce')
             }
+        },
+        humanizeAmount: function (number, type = 'normal') {
+            const typeMap = {
+                normal: {
+                    gap: 1000,
+                    abbr: ['', 'K', 'M', 'B', 't', 'q', 'Q', 's', 'S']
+                },
+                memory: {
+                    gap: 1024,
+                    abbr: ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+                },
+            };
+            const gap = typeMap[type].gap;
+            const abbrList = typeMap[type].abbr;
+
+            let level = 1;
+            while (level < abbrList.length) {
+                if (number < Math.pow(gap, level)) {
+                    break;
+                }
+                level = level + 1;
+            }
+
+            const fixedTo = level > 1 ? 2 : 0;
+            return (number / Math.pow(gap, level - 1)).toFixed(fixedTo) + abbrList[level - 1];
         }
     }
 };
