@@ -90,12 +90,12 @@ func fillAgent(ctx *gin.Context, request *AnnounceRequest) error {
 // 优先级：IP > IPv4 > IPv6 > ctx.ip
 func seedIP(ctx *gin.Context, request *AnnounceRequest) error {
 	// 如果上报的 IPv4 地址有误，则清空
-	if ip := net.ParseIP(request.IPv4); ip == nil || len(ip) != net.IPv4len {
+	if ip := net.ParseIP(request.IPv4); ip == nil || !strings.Contains(request.IPv4, ".") {
 		request.IPv4 = ""
 	}
 
 	// 如果上报的 IPv6 地址有误，则清空
-	if ip := net.ParseIP(request.IPv6); ip == nil || len(ip) != net.IPv6len {
+	if ip := net.ParseIP(request.IPv6); ip == nil || !strings.Contains(request.IPv6, ":") {
 		request.IPv6 = ""
 	}
 
@@ -112,10 +112,10 @@ func seedIP(ctx *gin.Context, request *AnnounceRequest) error {
 	if request.IPv4 == "" && request.IPv6 == "" {
 		clientIP := ctx.ClientIP()
 		if ip := net.ParseIP(ctx.ClientIP()); ip != nil {
-			if len(ip) == net.IPv4len {
-				request.IPv4 = clientIP
-			} else {
+			if strings.Contains(request.IP, ":") {
 				request.IPv6 = clientIP
+			} else {
+				request.IPv4 = clientIP
 			}
 		}
 	}
