@@ -111,8 +111,8 @@ func seedIP(ctx *gin.Context, request *AnnounceRequest) error {
 	// 如果均为空，则使用客户端地址填充
 	if request.IPv4 == "" && request.IPv6 == "" {
 		clientIP := ctx.ClientIP()
-		if ip := net.ParseIP(ctx.ClientIP()); ip != nil {
-			if strings.Contains(request.IP, ":") {
+		if ip := net.ParseIP(clientIP); ip != nil {
+			if strings.Contains(clientIP, ":") {
 				request.IPv6 = clientIP
 			} else {
 				request.IPv4 = clientIP
