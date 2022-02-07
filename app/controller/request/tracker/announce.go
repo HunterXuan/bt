@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net"
+	"strings"
 )
 
 type AnnounceRequest struct {
@@ -100,10 +101,10 @@ func seedIP(ctx *gin.Context, request *AnnounceRequest) error {
 
 	// 如果上报的 IP 地址有效，则覆盖对应的 IPv4/IPv6 地址
 	if ip := net.ParseIP(request.IP); ip != nil {
-		if len(ip) == net.IPv4len {
-			request.IPv4 = request.IP
-		} else {
+		if strings.Contains(request.IP, ":") {
 			request.IPv6 = request.IP
+		} else {
+			request.IPv4 = request.IP
 		}
 	}
 
