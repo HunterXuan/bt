@@ -27,7 +27,7 @@ func getTorrentIndexStats() statsResp.TorrentStats {
 	var totalCount, activeCount, deadCount int64
 	db.DB.Model(&model.Torrent{}).Count(&totalCount)
 	db.DB.Model(&model.Torrent{}).Where("last_active_at > ?", time.Now().Add(-24*time.Hour)).Count(&activeCount)
-	db.DB.Model(&model.Torrent{}).Where("last_active_at < ?", time.Now().Add(-720*time.Hour)).Count(&deadCount)
+	db.DB.Model(&model.Torrent{}).Where("last_active_at < ?", time.Now().Add(-72*time.Hour)).Count(&deadCount)
 
 	return statsResp.TorrentStats{
 		Total:  uint64(totalCount),

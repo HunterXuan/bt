@@ -9,8 +9,8 @@ import (
 
 type Cleaner struct{}
 
-const ActiveTorrentTtl = 24 * 30 * time.Hour
-const ActivePeerTtl = 24 * 30 * time.Hour
+const ActiveTorrentTtl = 7 * 24 * time.Hour
+const ActivePeerTtl = 6 * time.Hour
 
 func (cleaner *Cleaner) Run() {
 	log.Println("Cleaner start working")
