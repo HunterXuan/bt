@@ -8,7 +8,6 @@ type AllStatsResponse struct {
 type IndexItem struct {
 	Torrent TorrentStats `json:"torrent"`
 	Peer    PeerStats    `json:"peer"`
-	Traffic TrafficStats `json:"traffic"`
 }
 
 type TorrentStats struct {

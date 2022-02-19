@@ -17,7 +17,6 @@ func GetAllStats(ctx *gin.Context, req *statsReq.AllStatsRequest) (*statsResp.Al
 		Index: statsResp.IndexItem{
 			Torrent: getTorrentIndexStats(),
 			Peer:    getPeerIndexStats(),
-			Traffic: getTrafficIndexStats(),
 		},
 		Hot: getHotStats(),
 	}, nil
