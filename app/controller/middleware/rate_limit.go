@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	customError "github.com/HunterXuan/bt/app/infra/util/error"
 	"github.com/gin-gonic/gin"
 	limiter "github.com/julianshen/gin-limiter"
 	"time"
@@ -14,6 +13,6 @@ func RateLimit() gin.HandlerFunc {
 			return key, nil
 		}
 
-		return "", customError.NewBadRequestError("DEFAULT__RATE_LIMIT")
+		return "ANONYMOUS", nil
 	}).Middleware()
 }
