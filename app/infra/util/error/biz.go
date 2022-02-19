@@ -11,6 +11,7 @@ var BizErrorMap = map[string]BizErrorStruct{
 	"DEFAULT__UNAUTHORIZED":   {Code: 401, Message: "需要登录"},
 	"DEFAULT__FORBIDDEN":      {Code: 403, Message: "没有权限"},
 	"DEFAULT__NOT_FOUND":      {Code: 404, Message: "资源不存在"},
+	"DEFAULT__RATE_LIMIT":     {Code: 429, Message: "请求被限流"},
 	"DEFAULT__INTERNAL_ERROR": {Code: 500, Message: "内部错误"},
 
 	// 1000~2000: Tracker

@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/HunterXuan/bt/app/controller/handler/stats"
 	"github.com/HunterXuan/bt/app/controller/handler/tracker"
+	"github.com/HunterXuan/bt/app/controller/middleware"
 	"github.com/gin-gonic/gin"
 	"log"
 )
@@ -13,7 +14,7 @@ func InitRouter() *gin.Engine {
 	r := gin.New()
 
 	// Global middleware
-	r.Use(gin.Logger(), gin.Recovery())
+	r.Use(gin.Logger(), gin.Recovery(), middleware.RateLimit())
 
 	// index.html
 	r.StaticFile("/", "./storage/public/index.html")
