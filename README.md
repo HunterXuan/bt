@@ -15,3 +15,8 @@ BT Tracker written in GoLang
 ```shell
 docker-compose -f deploy/docker-compose/docker-compose.yml up
 ```
+
+### TODO
+
+- [ ] Torrent & Peers Cache
+- [ ] Rate Limit Middleware
