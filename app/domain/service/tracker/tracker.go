@@ -2,10 +2,12 @@ package tracker
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	trackerReq "github.com/HunterXuan/bt/app/controller/request/tracker"
 	"github.com/HunterXuan/bt/app/domain/model"
+	"github.com/HunterXuan/bt/app/infra/cache"
 	"github.com/HunterXuan/bt/app/infra/db"
 	"github.com/HunterXuan/bt/app/infra/util/convert"
 	customError "github.com/HunterXuan/bt/app/infra/util/error"
@@ -30,10 +32,15 @@ func GenScrapeResult(ctx *gin.Context, req *trackerReq.ScrapeRequest) (model.Tor
 // DealWithClientReport 处理客户端上报的请求
 func DealWithClientReport(ctx *gin.Context, req *trackerReq.AnnounceRequest) (*model.Torrent, model.PeerSlice, *customError.CustomError) {
 	// 查询种子
-	torrent, err := getOrCreateTorrentByInfoHash(req.InfoHash)
-	if torrent == nil || err != nil {
-		return nil, nil, customError.NewBadRequestError("TRACKER__INVALID_PARAMS")
+	var torrent *model.Torrent
+	torrent = getTorrentFromCache(ctx, req.InfoHash)
+	if torrent == nil {
+		torrent, err := getOrCreateTorrentByInfoHash(req.InfoHash)
+		if torrent == nil || err != nil {
+			return nil, nil, customError.NewBadRequestError("TRACKER__INVALID_PARAMS")
+		}
 	}
+	_ = setTorrentToCache(ctx, req.InfoHash, torrent)
 
 	// 更新数据
 	if err := updateData(torrent, req); err != nil {
@@ -297,4 +304,34 @@ func calPeerLimitCount(numWanted uint8) int {
 	}
 
 	return 50
+}
+
+func setTorrentToCache(ctx *gin.Context, infoHash string, torrent *model.Torrent) error {
+	bytes, err := json.Marshal(torrent)
+	if err != nil {
+		return nil
+	}
+
+	_, err = cache.RDB.SetEX(ctx, genTorrentCacheKey(infoHash), bytes, time.Hour).Result()
+	return err
+}
+
+func getTorrentFromCache(ctx *gin.Context, infoHash string) *model.Torrent {
+	var torrent model.Torrent
+	val, err := cache.RDB.Get(ctx, genTorrentCacheKey(infoHash)).Result()
+	if err != nil {
+		log.Println("getTorrentFromCache Err:", err)
+		return nil
+	}
+
+	if err := json.Unmarshal([]byte(val), &torrent); err != nil {
+		log.Println("getTorrentFromCache Err:", err)
+		return nil
+	}
+
+	return &torrent
+}
+
+func genTorrentCacheKey(infoHash string) string {
+	return fmt.Sprintf("TORRENT_WITH_HASH_%v", infoHash)
 }

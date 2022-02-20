@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/HunterXuan/bt/app/infra/cache"
 	"github.com/HunterXuan/bt/app/infra/config"
 	"github.com/HunterXuan/bt/app/infra/db"
 	"github.com/HunterXuan/bt/app/infra/scheduler"
@@ -19,6 +20,7 @@ func main() {
 	// Init
 	config.InitConfig()
 	db.InitDB()
+	cache.InitRedisClient()
 	scheduler.InitScheduler()
 
 	// Construct server
