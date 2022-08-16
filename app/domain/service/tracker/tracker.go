@@ -35,10 +35,12 @@ func DealWithClientReport(ctx *gin.Context, req *trackerReq.AnnounceRequest) (*m
 	var torrent *model.Torrent
 	torrent = getTorrentFromCache(ctx, req.InfoHash)
 	if torrent == nil {
-		torrent, err := getOrCreateTorrentByInfoHash(req.InfoHash)
-		if torrent == nil || err != nil {
+		newTorrent, err := getOrCreateTorrentByInfoHash(req.InfoHash)
+		if newTorrent == nil || err != nil {
 			return nil, nil, customError.NewBadRequestError("TRACKER__INVALID_PARAMS")
 		}
+
+		torrent = newTorrent
 	}
 	_ = setTorrentToCache(ctx, req.InfoHash, torrent)
 
@@ -309,7 +311,7 @@ func calPeerLimitCount(numWanted uint8) int {
 func setTorrentToCache(ctx *gin.Context, infoHash string, torrent *model.Torrent) error {
 	bytes, err := json.Marshal(torrent)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	_, err = cache.RDB.SetEX(ctx, genTorrentCacheKey(infoHash), bytes, time.Hour).Result()
