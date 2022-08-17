@@ -15,7 +15,7 @@ import (
 
 // GetAllStats 获取统计数据
 func GetAllStats(ctx *gin.Context, req *statsReq.AllStatsRequest) (*statsResp.AllStatsResponse, *customError.CustomError) {
-	if stats, err := getStatsFromCache(ctx); err != nil {
+	if stats, err := getStatsFromCache(ctx); stats != nil && err == nil {
 		return stats, nil
 	}
 
