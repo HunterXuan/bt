@@ -1,9 +1,11 @@
 package stats
 
 import (
+	"encoding/json"
 	statsReq "github.com/HunterXuan/bt/app/controller/request/stats"
 	statsResp "github.com/HunterXuan/bt/app/controller/response/stats"
 	"github.com/HunterXuan/bt/app/domain/model"
+	"github.com/HunterXuan/bt/app/infra/cache"
 	"github.com/HunterXuan/bt/app/infra/db"
 	customError "github.com/HunterXuan/bt/app/infra/util/error"
 	"github.com/gin-gonic/gin"
@@ -13,13 +15,58 @@ import (
 
 // GetAllStats 获取统计数据
 func GetAllStats(ctx *gin.Context, req *statsReq.AllStatsRequest) (*statsResp.AllStatsResponse, *customError.CustomError) {
-	return &statsResp.AllStatsResponse{
+	if stats, err := getStatsFromCache(ctx); err != nil {
+		return stats, nil
+	}
+
+	stats := &statsResp.AllStatsResponse{
 		Index: statsResp.IndexItem{
 			Torrent: getTorrentIndexStats(),
 			Peer:    getPeerIndexStats(),
+			Traffic: getTrafficIndexStats(),
 		},
 		Hot: getHotStats(),
-	}, nil
+	}
+
+	_ = setStatsToCache(ctx, stats)
+
+	return stats, nil
+}
+
+func getStatsFromCache(ctx *gin.Context) (*statsResp.AllStatsResponse, error) {
+	var stats *statsResp.AllStatsResponse
+
+	val, err := cache.RDB.Get(ctx, genStatsCacheKey()).Result()
+	if err != nil {
+		log.Println("getStatsFromCache Err:", err)
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(val), &stats); err != nil {
+		log.Println("getTorrentFromCache Err:", err)
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+func setStatsToCache(ctx *gin.Context, stats *statsResp.AllStatsResponse) error {
+	bytes, err := json.Marshal(stats)
+	if err != nil {
+		log.Println("setStatsToCache Err:", err)
+		return err
+	}
+
+	_, err = cache.RDB.SetEX(ctx, genStatsCacheKey(), bytes, time.Hour).Result()
+	if err != nil {
+		log.Println("setStatsToCache Err:", err)
+	}
+
+	return err
+}
+
+func genStatsCacheKey() string {
+	return "STATS_CACHE"
 }
 
 func getTorrentIndexStats() statsResp.TorrentStats {
