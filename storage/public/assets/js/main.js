@@ -34,9 +34,9 @@ const App = {
                 this.index.peer.seeder = this.humanizeAmount(resIndexData.peer.seeder);
                 this.index.peer.leecher = this.humanizeAmount(resIndexData.peer.leecher);
 
-                this.index.traffic.total = this.humanizeAmount(resIndexData.traffic.total, 'memory');
-                this.index.traffic.upload = this.humanizeAmount(resIndexData.traffic.upload, 'memory');
-                this.index.traffic.download = this.humanizeAmount(resIndexData.traffic.download, 'memory');
+                // this.index.traffic.total = this.humanizeAmount(resIndexData.traffic.total, 'memory');
+                // this.index.traffic.upload = this.humanizeAmount(resIndexData.traffic.upload, 'memory');
+                // this.index.traffic.download = this.humanizeAmount(resIndexData.traffic.download, 'memory');
             }
             this.hot = res.data.hot || this.hot;
         }).catch((err) => {
