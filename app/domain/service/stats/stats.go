@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"context"
 	"encoding/json"
 	statsReq "github.com/HunterXuan/bt/app/controller/request/stats"
 	statsResp "github.com/HunterXuan/bt/app/controller/response/stats"
@@ -19,6 +20,11 @@ func GetAllStats(ctx *gin.Context, req *statsReq.AllStatsRequest) (*statsResp.Al
 		return stats, nil
 	}
 
+	return nil, customError.NewBadRequestError("STATS__INVALID_PARAMS")
+}
+
+// UpdateStatsCache 更新统计数据缓存
+func UpdateStatsCache() error {
 	stats := &statsResp.AllStatsResponse{
 		Index: statsResp.IndexItem{
 			Torrent: getTorrentIndexStats(),
@@ -28,9 +34,7 @@ func GetAllStats(ctx *gin.Context, req *statsReq.AllStatsRequest) (*statsResp.Al
 		Hot: getHotStats(),
 	}
 
-	_ = setStatsToCache(ctx, stats)
-
-	return stats, nil
+	return setStatsToCache(context.Background(), stats)
 }
 
 func getStatsFromCache(ctx *gin.Context) (*statsResp.AllStatsResponse, error) {
@@ -50,7 +54,7 @@ func getStatsFromCache(ctx *gin.Context) (*statsResp.AllStatsResponse, error) {
 	return stats, nil
 }
 
-func setStatsToCache(ctx *gin.Context, stats *statsResp.AllStatsResponse) error {
+func setStatsToCache(ctx context.Context, stats *statsResp.AllStatsResponse) error {
 	bytes, err := json.Marshal(stats)
 	if err != nil {
 		log.Println("setStatsToCache Err:", err)

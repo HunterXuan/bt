@@ -12,7 +12,7 @@ type Cleaner struct{}
 const ActiveTorrentTtl = 24 * time.Hour
 const ActivePeerTtl = 6 * time.Hour
 
-func (cleaner *Cleaner) Run() {
+func (c *Cleaner) Run() {
 	log.Println("Cleaner start working")
 
 	log.Println("Cleaner cleaning dead torrents")
