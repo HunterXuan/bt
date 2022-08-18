@@ -6,9 +6,12 @@
     <link rel="shortcut icon" href="/favicon.ico">
     <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css" />
     <link rel="stylesheet" href="/assets/css/main.css" />
+
+    <script src="//unpkg.com/vue@3"></script>
+    <script src="//unpkg.com/element-plus"></script>
 </head>
 <body style="margin: 0">
-    <div id="app">
+    <div id="app" v-loading="loading">
         <el-row class="landing-row" justify="center" align="middle">
             <el-col :span="10">
                 <el-avatar :size="100" src="./assets/img/bt.png"> BT </el-avatar>
@@ -134,9 +137,6 @@
         </el-footer>
     </div>
 
-    <script src="//unpkg.com/vue@3"></script>
-    <script src="//unpkg.com/element-plus"></script>
-    <script src="//unpkg.com/@element-plus/icons-vue"></script>
     <script src="/assets/js/main.js"></script>
 </body>
 </html>
