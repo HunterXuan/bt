@@ -2,6 +2,7 @@ const App = {
     data() {
         return {
             loading: true,
+            statsTab: "top",
             index: {
                 torrent: {
                     total: 0,
@@ -46,6 +47,15 @@ const App = {
         })
     },
     methods: {
+        goToGitHub: function () {
+            window.open("https://github.com/HunterXuan/bt")
+        },
+        goToDockerHub: function () {
+            window.open("https://hub.docker.com/r/hunterxuan/bt")
+        },
+        goToBlog: function () {
+            window.open("https://hunterx.xyz")
+        },
         handleDownloadBtnClick: function (index) {
             if (this.hot[index] && this.hot[index].info_hash) {
                 const hashInfo = this.hot[index].info_hash;

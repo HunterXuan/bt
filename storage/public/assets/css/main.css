@@ -1,9 +1,36 @@
-html {
-    background: #99CCFF;
+.landing-row {
+    height: 100vh;
+    background-image: url("/assets/img/header.svg");
+    background-size: cover;
 }
 
-.main-divider .el-divider__text {
-    background: #99CCFF;
+.landing-row .el-col {
+    text-align: center;
+}
+
+.stats-block {
+    background: darkcyan;
+    padding: 0 40px;
+}
+
+.stats-row {
+    height: 100vh;
+    background: darkcyan;
+}
+
+.stats-title {
+    text-align: center;
+    color: white;
+}
+
+.hot-title {
+    text-align: center;
+}
+
+.copyright-footer {
+    background: whitesmoke;
+    text-align: center;
+    line-height: 60px;
 }
 
 .index-card .el-card__body {
