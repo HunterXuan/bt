@@ -41,11 +41,12 @@ func (d *DHT) Run() {
 				return
 			}
 
-			tc := time.NewTimer(time.Second * 30)
+			tc := time.NewTimer(time.Minute)
 			select {
 			case <-t.GotInfo():
 				break
 			case <-tc.C:
+				log.Println("DHT get info timeout")
 				return
 			}
 
@@ -79,7 +80,7 @@ func getHotTorrentsAndPeers() []HotTorrentItem {
 		Select("id, info_hash").
 		Where("meta_info = ?", "").
 		Order("leecher_count desc").
-		Limit(100).
+		Limit(5).
 		Find(&torrents)
 	if findRes.Error != nil {
 		log.Println("DHT getHotTorrentsAndPeers Err:", findRes.Error)
