@@ -1,46 +1,23 @@
 package dht
 
 import (
-	"encoding/json"
-	"github.com/HunterXuan/bt/app/domain/model"
-	"github.com/HunterXuan/bt/app/infra/db"
-	trackerUtil "github.com/HunterXuan/bt/app/infra/util/tracker"
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/metainfo"
-	"github.com/shiyanhui/dht"
+	"github.com/anacrolix/torrent"
 	"log"
 )
 
-var DHT *dht.Wire
+var (
+	DHT               *torrent.Client
+	WorkingInfoHashes = make(chan string, 32)
+)
 
 func InitDHT() {
 	log.Println("DHT Initializing...")
 
-	DHT = dht.NewWire(10240, 128, 64)
-
-	go func() {
-		for resp := range DHT.Response() {
-			log.Println("dht response:", resp.InfoHash)
-
-			var info metainfo.Info
-			if err := bencode.Unmarshal(resp.MetadataInfo, info); err != nil {
-				log.Println("dht unmarshal info err:", err)
-				continue
-			}
-
-			if jsonInfo, err := json.Marshal(info); err != nil {
-				log.Println("dht marshal info err:", err)
-			} else if err := db.DB.Model(&model.Torrent{}).
-				Where("info_hash = ?", trackerUtil.RestoreToHexString(string(resp.InfoHash))).
-				Updates(map[string]interface{}{"meta_info": string(jsonInfo)}).Error; err != nil {
-				log.Println("dht update info err:", err)
-			} else {
-				log.Println("dht update info success:", jsonInfo)
-			}
-		}
-	}()
-
-	go DHT.Run()
+	var err error
+	DHT, err = torrent.NewClient(nil)
+	if err != nil {
+		log.Fatalf("Err: %v", err)
+	}
 
 	log.Println("DHT Initialized!")
 }

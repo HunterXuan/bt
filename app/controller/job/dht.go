@@ -1,10 +1,14 @@
 package job
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/HunterXuan/bt/app/domain/model"
+	"github.com/HunterXuan/bt/app/infra/config"
 	"github.com/HunterXuan/bt/app/infra/db"
 	"github.com/HunterXuan/bt/app/infra/dht"
-	"github.com/HunterXuan/bt/app/infra/util/tracker"
+	"github.com/anacrolix/torrent/bencode"
+	"github.com/anacrolix/torrent/metainfo"
 	"log"
 	"math/rand"
 	"time"
@@ -23,7 +27,47 @@ func (d *DHT) Run() {
 	log.Println("DHT start collecting torrents info")
 
 	for _, item := range getHotTorrentsAndPeers() {
-		dht.DHT.Request([]byte(tracker.RestoreToByteString(item.InfoHash)), item.Ip, int(item.Port))
+		infoHash := item.InfoHash
+
+		go func() {
+			dht.WorkingInfoHashes <- infoHash
+			defer func() {
+				<-dht.WorkingInfoHashes
+			}()
+
+			t, err := dht.DHT.AddMagnet(fmt.Sprintf("magnet:?xt=urn:btih:%v&tr=http://%v", infoHash, config.Config.GetString("APP_LISTEN_ADDR")))
+			if err != nil {
+				log.Println("DHT add magnet err:", err)
+				return
+			}
+
+			tc := time.NewTimer(time.Second * 30)
+			select {
+			case <-t.GotInfo():
+				break
+			case <-tc.C:
+				return
+			}
+
+			metaInfo := t.Metainfo()
+			t.Drop()
+
+			var info metainfo.Info
+			if err := bencode.Unmarshal(metaInfo.InfoBytes, &info); err != nil {
+				log.Println("DHT unmarshal info err:", err)
+				return
+			}
+
+			if jsonInfo, err := json.Marshal(metaInfo.InfoBytes); err != nil {
+				log.Println("DHT marshal info err:", err)
+			} else if err := db.DB.Model(&model.Torrent{}).
+				Where("info_hash = ?", infoHash).
+				Updates(map[string]interface{}{"meta_info": string(jsonInfo)}).Error; err != nil {
+				log.Println("DHT update info err:", err)
+			} else {
+				log.Println("DHT update info success:", jsonInfo)
+			}
+		}()
 	}
 
 	log.Println("DHT finish collecting torrents info")
