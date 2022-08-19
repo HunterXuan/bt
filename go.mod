@@ -9,6 +9,7 @@ require (
 	github.com/joho/godotenv v1.4.0
 	github.com/julianshen/gin-limiter v0.0.0-20161123033831-fc39b5e90fe7
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/shiyanhui/dht v0.0.0-20201219151056-5a20f3199263
 	github.com/spf13/viper v1.10.1
 	gorm.io/driver/mysql v1.2.3
 	gorm.io/gorm v1.22.5

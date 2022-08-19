@@ -8,6 +8,7 @@ type Torrent struct {
 	SeederCount   uint64 `gorm:"not null"`
 	LeecherCount  uint64 `gorm:"not null"`
 	SnatcherCount uint64 `gorm:"not null"`
+	MetaInfo      string `gorm:"type:mediumtext;default:'';not null"`
 	LastActiveAt  time.Time
 }
 

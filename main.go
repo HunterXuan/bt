@@ -5,6 +5,7 @@ import (
 	"github.com/HunterXuan/bt/app/infra/cache"
 	"github.com/HunterXuan/bt/app/infra/config"
 	"github.com/HunterXuan/bt/app/infra/db"
+	"github.com/HunterXuan/bt/app/infra/dht"
 	"github.com/HunterXuan/bt/app/infra/scheduler"
 	"github.com/HunterXuan/bt/app/router"
 	_ "github.com/joho/godotenv/autoload"
@@ -22,6 +23,7 @@ func main() {
 	db.InitDB()
 	cache.InitRedisClient()
 	scheduler.InitScheduler()
+	dht.InitDHT()
 
 	// Construct server
 	r := router.InitRouter()
