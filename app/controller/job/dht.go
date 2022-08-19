@@ -2,7 +2,6 @@ package job
 
 import (
 	"github.com/HunterXuan/bt/app/domain/model"
-	"github.com/HunterXuan/bt/app/domain/service/stats"
 	"github.com/HunterXuan/bt/app/infra/db"
 	"github.com/HunterXuan/bt/app/infra/dht"
 	"github.com/HunterXuan/bt/app/infra/util/tracker"
@@ -16,16 +15,12 @@ type DHT struct{}
 type HotTorrentItem struct {
 	ID       uint64 `json:"id"`
 	InfoHash string `json:"info_hash"`
-	Ip     string `json:"ip"`
+	Ip       string `json:"ip"`
 	Port     uint32 `json:"port"`
 }
 
 func (d *DHT) Run() {
 	log.Println("DHT start collecting torrents info")
-
-	if err := stats.UpdateStatsCache(); err != nil {
-		log.Println("DHT (err):", err)
-	}
 
 	for _, item := range getHotTorrentsAndPeers() {
 		dht.DHT.Request([]byte(tracker.RestoreToByteString(item.InfoHash)), item.Ip, int(item.Port))
@@ -43,9 +38,9 @@ func getHotTorrentsAndPeers() []HotTorrentItem {
 		Limit(100).
 		Find(&torrents)
 	if findRes.Error != nil {
-		log.Println("getHotTorrentsAndPeers Err:", findRes.Error)
+		log.Println("DHT getHotTorrentsAndPeers Err:", findRes.Error)
 	} else {
-		log.Println("getHotTorrentsAndPeers Torrent Count:", len(torrents))
+		log.Println("DHT getHotTorrentsAndPeers Torrent Count:", len(torrents))
 	}
 
 	var torrentIdSlice []uint64
@@ -59,9 +54,9 @@ func getHotTorrentsAndPeers() []HotTorrentItem {
 		Where("torrent_id IN ? AND is_connectable = ?", torrentIdSlice, 1).
 		Find(&peers)
 	if findRes.Error != nil {
-		log.Println("getHotTorrentsAndPeers Err:", findRes.Error)
+		log.Println("DHT getHotTorrentsAndPeers Err:", findRes.Error)
 	} else {
-		log.Println("getHotTorrentsAndPeers Peer Count:", len(peers))
+		log.Println("DHT getHotTorrentsAndPeers Peer Count:", len(peers))
 	}
 
 	return groupTorrentAndPeer(torrents, peers)

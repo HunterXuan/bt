@@ -115,7 +115,7 @@ func getTrafficIndexStats() statsResp.TrafficStats {
 func getHotStats() []statsResp.HotTorrentItem {
 	var torrents []statsResp.HotTorrentItem
 	findRes := db.DB.Model(&model.Torrent{}).
-		Select("info_hash, seeder_count, leecher_count, snatcher_count").
+		Select("info_hash, seeder_count, leecher_count, snatcher_count, meta_info").
 		Order("leecher_count desc").
 		Limit(100).
 		Find(&torrents)

@@ -34,6 +34,7 @@ type HotTorrentItem struct {
 	SeederCount   uint64 `json:"seeder_count"`
 	LeecherCount  uint64 `json:"leecher_count"`
 	SnatcherCount uint64 `json:"snatcher_count"`
+	MetaInfo      string `json:"meta_info"`
 }
 
 func (s AllStatsResponse) Serialize(singleModel interface{}) interface{} {
