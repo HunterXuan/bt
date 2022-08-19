@@ -33,7 +33,7 @@ func getHotTorrentsAndPeers() []HotTorrentItem {
 	var torrents []model.Torrent
 	findRes := db.DB.Model(&model.Torrent{}).
 		Select("id, info_hash").
-		Where("meta_info <> ?", "").
+		Where("meta_info = ?", "").
 		Order("leecher_count desc").
 		Limit(100).
 		Find(&torrents)
