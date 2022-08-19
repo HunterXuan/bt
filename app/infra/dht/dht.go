@@ -16,7 +16,7 @@ var DHT *dht.Wire
 func InitDHT() {
 	log.Println("DHT Initializing...")
 
-	DHT = dht.NewWire(1024*8, 1024, 128)
+	DHT = dht.NewWire(10240, 128, 64)
 
 	go func() {
 		for resp := range DHT.Response() {
