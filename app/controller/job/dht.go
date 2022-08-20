@@ -24,7 +24,15 @@ func (d *DHT) Run() {
 		go func() {
 			log.Println("DHT waiting to process torrent with info_hash", infoHash)
 
-			dht.WorkingInfoHashes <- infoHash
+			tc := time.NewTimer(time.Second * 15)
+			select {
+			case dht.WorkingInfoHashes <- infoHash:
+				break
+			case <-tc.C:
+				log.Println("DHT add worker timeout:")
+				return
+			}
+
 			defer func() {
 				if len(dht.WorkingInfoHashes) > 0 {
 					<-dht.WorkingInfoHashes
@@ -39,7 +47,7 @@ func (d *DHT) Run() {
 				return
 			}
 
-			tc := time.NewTimer(time.Minute)
+			tc = time.NewTimer(time.Minute)
 			select {
 			case <-t.GotInfo():
 				break
@@ -77,8 +85,8 @@ func getHotTorrents() []model.Torrent {
 	findRes := db.DB.Model(&model.Torrent{}).
 		Select("id, info_hash").
 		Where("meta_info = ?", "").
-		Order("leecher_count desc").
-		Limit(8).
+		Order("last_active_at desc").
+		Limit(16).
 		Find(&torrents)
 	if findRes.Error != nil {
 		log.Println("DHT getHotTorrents Err:", findRes.Error)

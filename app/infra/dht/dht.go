@@ -7,7 +7,7 @@ import (
 
 var (
 	DHT               *torrent.Client
-	WorkingInfoHashes = make(chan string, 8)
+	WorkingInfoHashes = make(chan string, 16)
 )
 
 func InitDHT() {
