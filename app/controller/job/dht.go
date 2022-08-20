@@ -65,14 +65,14 @@ func (d *DHT) Run() {
 				return
 			}
 
-			if jsonInfo, err := json.Marshal(metaInfo.InfoBytes); err != nil {
+			if jsonInfo, err := json.Marshal(info); err != nil {
 				log.Println("DHT marshal info err:", err)
 			} else if err := db.DB.Model(&model.Torrent{}).
 				Where("info_hash = ?", infoHash).
 				Updates(map[string]interface{}{"meta_info": string(jsonInfo)}).Error; err != nil {
 				log.Println("DHT update info err:", err)
 			} else {
-				log.Println("DHT update info success:", jsonInfo)
+				log.Println("DHT update info success:", infoHash, string(jsonInfo))
 			}
 		}()
 	}
