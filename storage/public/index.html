@@ -24,6 +24,8 @@
                 <p>Another bt tracker written in golang, based on the gin framework.</p>
                 <p>A simple but high-performance, cloud-ready tracker that only needs MySQL for persistence, and Redis for cache.</p>
 
+                <el-tag size="large" type="success" effect="dark">Tracker: {{ trackerUrl }}</el-tag>
+
                 <div style="padding-top: 32px; display: flex; justify-content: space-around;">
                     <el-button type="danger" size="large" @click="goToGitHub">GET STARTED</el-button>
                     <el-button type="danger" size="large" plain @click="goToDockerHub">DOCKER IMAGE</el-button>

@@ -2,7 +2,7 @@ const App = {
     data() {
         return {
             loading: true,
-            statsTab: "top",
+            trackerUrl: window.location.href + 'announce',
             index: {
                 torrent: {
                     total: 0,
