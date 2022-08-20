@@ -12,7 +12,7 @@ func InitScheduler() {
 	log.Print("Scheduler Initializing...")
 
 	Scheduler = cron.New()
-	_, err := Scheduler.AddJob("@every 10m", &job.DHT{})
+	_, err := Scheduler.AddJob("@every 5m", &job.DHT{})
 	if err != nil {
 		log.Panicln("InitScheduler:", err)
 	}

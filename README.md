@@ -18,5 +18,5 @@ docker-compose -f deploy/docker-compose/docker-compose.yml up
 
 ### TODO
 
-- [ ] Torrent & Peers Cache
-- [ ] Rate Limit Middleware
+- [x] Torrent & Peers Cache
+- [x] Rate Limit Middleware

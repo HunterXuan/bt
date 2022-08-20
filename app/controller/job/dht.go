@@ -24,7 +24,7 @@ func (d *DHT) Run() {
 		go func() {
 			log.Println("DHT waiting to process torrent with info_hash", infoHash)
 
-			tc := time.NewTimer(time.Second * 15)
+			tc := time.NewTimer(time.Minute)
 			select {
 			case dht.WorkingInfoHashes <- infoHash:
 				break
@@ -43,7 +43,7 @@ func (d *DHT) Run() {
 
 			t, err := dht.DHT.AddMagnet(fmt.Sprintf("magnet:?xt=urn:btih:%v&tr=http://%v", infoHash, config.Config.GetString("APP_LISTEN_ADDR")))
 			if err != nil {
-				log.Println("DHT add magnet err:", err)
+				log.Println("DHT add magnet err:", infoHash, err)
 				return
 			}
 
@@ -52,7 +52,7 @@ func (d *DHT) Run() {
 			case <-t.GotInfo():
 				break
 			case <-tc.C:
-				log.Println("DHT get info timeout")
+				log.Println("DHT get info timeout", infoHash)
 				return
 			}
 
@@ -61,18 +61,18 @@ func (d *DHT) Run() {
 
 			var info metainfo.Info
 			if err := bencode.Unmarshal(metaInfo.InfoBytes, &info); err != nil {
-				log.Println("DHT unmarshal info err:", err)
+				log.Println("DHT unmarshal info err:", infoHash, err)
 				return
 			}
 
 			if jsonInfo, err := json.Marshal(info); err != nil {
-				log.Println("DHT marshal info err:", err)
+				log.Println("DHT marshal info err:", infoHash, err)
 			} else if err := db.DB.Model(&model.Torrent{}).
 				Where("info_hash = ?", infoHash).
 				Updates(map[string]interface{}{"meta_info": string(jsonInfo)}).Error; err != nil {
-				log.Println("DHT update info err:", err)
+				log.Println("DHT update info err:", infoHash, err)
 			} else {
-				log.Println("DHT update info success:", infoHash, string(jsonInfo))
+				log.Println("DHT update info success:", infoHash)
 			}
 		}()
 	}

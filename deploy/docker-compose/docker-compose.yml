@@ -16,6 +16,7 @@ services:
       DB_NAME: bt
       DB_USER: root
       DB_PASS: 123456
+      RATE_LIMITING: 100
       TZ: Asia/Shanghai
     restart: always
     networks:
