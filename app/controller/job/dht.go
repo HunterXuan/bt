@@ -29,7 +29,7 @@ func (d *DHT) Run() {
 			case dht.WorkingInfoHashes <- infoHash:
 				break
 			case <-tc.C:
-				log.Println("DHT add worker timeout:")
+				log.Println("DHT add worker timeout:", infoHash)
 				return
 			}
 

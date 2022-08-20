@@ -2,7 +2,7 @@ const App = {
     data() {
         return {
             loading: true,
-            trackerUrl: window.location.href + 'announce',
+            trackerUrl: '',
             index: {
                 torrent: {
                     total: 0,
@@ -24,6 +24,8 @@ const App = {
         };
     },
     mounted: function () {
+        this.trackerUrl = window.location.href + 'announce';
+
         fetch("/stats").then(res => res.json()).then((res) => {
             if (res.data.index) {
                 const resIndexData = res.data.index;
