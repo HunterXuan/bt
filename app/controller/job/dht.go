@@ -30,10 +30,16 @@ func (d *DHT) Run() {
 		infoHash := item.InfoHash
 
 		go func() {
+			log.Println("DHT waiting to process torrent with info_hash", infoHash)
+
 			dht.WorkingInfoHashes <- infoHash
 			defer func() {
-				<-dht.WorkingInfoHashes
+				if len(dht.WorkingInfoHashes) > 0 {
+					<-dht.WorkingInfoHashes
+				}
 			}()
+
+			log.Println("DHT start to process torrent with info_hash", infoHash)
 
 			t, err := dht.DHT.AddMagnet(fmt.Sprintf("magnet:?xt=urn:btih:%v&tr=http://%v", infoHash, config.Config.GetString("APP_LISTEN_ADDR")))
 			if err != nil {
