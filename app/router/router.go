@@ -4,6 +4,7 @@ import (
 	"github.com/HunterXuan/bt/app/controller/handler/stats"
 	"github.com/HunterXuan/bt/app/controller/handler/tracker"
 	"github.com/HunterXuan/bt/app/controller/middleware"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"log"
 )
@@ -12,6 +13,8 @@ func InitRouter() *gin.Engine {
 	log.Println("Router Initializing...")
 
 	r := gin.New()
+
+	pprof.Register(r)
 
 	// Global middleware
 	r.Use(gin.Logger(), gin.Recovery(), middleware.RateLimit())

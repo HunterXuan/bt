@@ -11,7 +11,7 @@ FROM golang:1.17-alpine
 COPY --from=builder /src/bt /app/bt
 COPY --from=builder /src/storage /app/storage
 
-RUN apk update && apk add tzdata
+RUN apk update && apk add tzdata graphviz
 
 ENV TZ=Asia/Shanghai
 
