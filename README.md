@@ -4,7 +4,7 @@ BT Tracker written in GoLang
 
 ## How to use
 
-1. Prepare database
+1. Prepare redis
 2. Prepare environment variables (see `.env.example` file)
 3. Use docker to run
 
@@ -15,8 +15,3 @@ BT Tracker written in GoLang
 ```shell
 docker-compose -f deploy/docker-compose/docker-compose.yml up
 ```
-
-### TODO
-
-- [x] Torrent & Peers Cache
-- [x] Rate Limit Middleware
