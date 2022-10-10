@@ -109,7 +109,7 @@ func getHotStats(ctx context.Context) []statsResp.HotTorrentItem {
 
 	var torrents []statsResp.HotTorrentItem
 	for _, infoHash := range hotInfoHashes {
-		torrentStr, err := db.RDB.Get(ctx, service.GenTorrentPlaceHoldKey(infoHash)).Result()
+		torrentStr, err := db.RDB.Get(ctx, service.GenTorrentInfoKey(infoHash)).Result()
 		if err != nil {
 			continue
 		}

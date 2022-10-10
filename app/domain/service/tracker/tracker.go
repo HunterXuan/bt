@@ -64,7 +64,7 @@ func getOrCreateTorrentByInfoHashSlice(ctx context.Context, infoHashSlice []stri
 func getOrCreateTorrentByInfoHash(ctx context.Context, infoHash string) (*model.Torrent, error) {
 	var torrent *model.Torrent
 
-	torrentStr, _ := db.RDB.Get(ctx, service.GenTorrentPlaceHoldKey(infoHash)).Result()
+	torrentStr, _ := db.RDB.Get(ctx, service.GenTorrentInfoKey(infoHash)).Result()
 	if len(torrentStr) > 0 {
 		err := json.Unmarshal([]byte(torrentStr), &torrent)
 		if err != nil {
@@ -99,7 +99,7 @@ func getOrCreateTorrentByInfoHash(ctx context.Context, infoHash string) (*model.
 			return nil, err
 		}
 
-		db.RDB.Set(ctx, service.GenTorrentPlaceHoldKey(infoHash), torrentStr, constants.TorrentExpiration)
+		db.RDB.Set(ctx, service.GenTorrentInfoKey(infoHash), torrentStr, constants.TorrentExpiration)
 	}
 
 	return torrent, nil

@@ -96,7 +96,7 @@ func getHotTorrents() model.TorrentSlice {
 			break
 		}
 
-		torrentStr, err := db.RDB.Get(ctx, service.GenTorrentPlaceHoldKey(infoHash)).Result()
+		torrentStr, err := db.RDB.Get(ctx, service.GenTorrentInfoKey(infoHash)).Result()
 		if err != nil {
 			continue
 		}

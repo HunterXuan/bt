@@ -5,8 +5,8 @@ import (
 	"github.com/HunterXuan/bt/app/infra/constants"
 )
 
-func GenTorrentPlaceHoldKey(infoHash string) string {
-	return fmt.Sprintf(constants.TorrentPlaceHoldTemplate, infoHash)
+func GenTorrentInfoKey(infoHash string) string {
+	return fmt.Sprintf(constants.TorrentInfoTemplate, infoHash)
 }
 
 func GenTorrentSeederCountKey(infoHash string) string {

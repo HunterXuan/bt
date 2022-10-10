@@ -3,26 +3,25 @@ package constants
 import "time"
 
 const (
-	TorrentPlaceHoldTemplate            = "torrent_%s_place_hold"
-	TorrentSeederCountKeyTemplate       = "torrent_%s_seeder_count"
-	TorrentLeecherCountCountKeyTemplate = "torrent_%s_leecher_count"
-	TorrentSnatcherCountKeyTemplate     = "torrent_%s_snatcher_count"
-	TorrentMetaInfoKeyTemplate          = "torrent_%s_meta_info"
-	TorrentPeerKeyTemplate              = "torrent_%s_peer_%s"
+	TorrentInfoTemplate                 = "torrent:%s:info"
+	TorrentSeederCountKeyTemplate       = "torrent:%s:seeder_count"
+	TorrentLeecherCountCountKeyTemplate = "torrent:%s:leecher_count"
+	TorrentSnatcherCountKeyTemplate     = "torrent:%s:snatcher_count"
+	TorrentMetaInfoKeyTemplate          = "torrent:%s:meta_info"
+	TorrentPeerKeyTemplate              = "torrent:%s:peer:%s"
 
-	TorrentPeerSearchKeyTemplate = "torrent_%s_peer_*"
+	TorrentPeerSearchKeyTemplate = "torrent:%s:peer:*"
 
-	TorrentHotSetKey      = "torrent_hot"
+	TorrentHotSetKey      = "hot"
 	TorrentHotSetCapacity = 1000
 
-	TrackerStatsCacheKey = "tracker_stats_cache"
+	TrackerStatsCacheKey   = "tracker:stats:cache"
+	TrackerTorrentStatsKey = "tracker:stats:torrent"
+	TrackerPeerStatsKey    = "tracker:stats:peer"
+	TrackerTrafficStatsKey = "tracker:stats:traffic"
 
-	TrackerTorrentStatsKey = "tracker_stats_torrent"
-	TrackerPeerStatsKey    = "tracker_stats_peer"
-	TrackerTrafficStatsKey = "tracker_stats_traffic"
-
-	TrackerTorrentCountPattern = "torrent_*_place_hold"
-	TrackerPeerCountPattern    = "torrent_*_peer_*"
+	TrackerTorrentCountPattern = "torrent:*:info"
+	TrackerPeerCountPattern    = "torrent:*:peer:*"
 
 	TorrentExpiration = time.Hour * 24
 	PeerExpiration    = time.Hour * 6
