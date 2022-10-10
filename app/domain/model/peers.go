@@ -13,6 +13,7 @@ type Peer struct {
 	IsSeeder        bool
 	IsConnectable   bool
 	FinishedAt      int64
+	LastActiveAt    int64
 }
 
 type PeerSlice []Peer

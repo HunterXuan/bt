@@ -8,11 +8,9 @@ const (
 	TorrentLeecherCountCountKeyTemplate = "torrent:%s:leecher_count"
 	TorrentSnatcherCountKeyTemplate     = "torrent:%s:snatcher_count"
 	TorrentMetaInfoKeyTemplate          = "torrent:%s:meta_info"
-	TorrentPeerKeyTemplate              = "torrent:%s:peer:%s"
+	TorrentPeerKeyTemplate              = "torrent:%s:peer"
 
-	TorrentPeerSearchKeyTemplate = "torrent:%s:peer:*"
-
-	TorrentHotSetKey      = "hot"
+	TorrentHotSetKey      = "hot:torrent"
 	TorrentHotSetCapacity = 1000
 
 	TrackerStatsCacheKey   = "tracker:stats:cache"
@@ -21,7 +19,7 @@ const (
 	TrackerTrafficStatsKey = "tracker:stats:traffic"
 
 	TrackerTorrentCountPattern = "torrent:*:info"
-	TrackerPeerCountPattern    = "torrent:*:peer:*"
+	TrackerPeerCountPattern    = "torrent:*:peer"
 
 	TorrentExpiration = time.Hour * 24
 	PeerExpiration    = time.Hour * 6

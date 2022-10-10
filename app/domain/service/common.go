@@ -25,10 +25,6 @@ func GenTorrentMetaInfoKey(infoHash string) string {
 	return fmt.Sprintf(constants.TorrentMetaInfoKeyTemplate, infoHash)
 }
 
-func GenPeerKey(infoHash string, peerID string) string {
-	return fmt.Sprintf(constants.TorrentPeerKeyTemplate, infoHash, peerID)
-}
-
-func GenPeerSearchPattern(infoHash string) string {
-	return fmt.Sprintf(constants.TorrentPeerSearchKeyTemplate, infoHash)
+func GenPeerKey(infoHash string) string {
+	return fmt.Sprintf(constants.TorrentPeerKeyTemplate, infoHash)
 }

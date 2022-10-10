@@ -3,7 +3,6 @@ package tracker
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	trackerReq "github.com/HunterXuan/bt/app/controller/request/tracker"
 	"github.com/HunterXuan/bt/app/domain/model"
 	"github.com/HunterXuan/bt/app/domain/service"
@@ -107,7 +106,7 @@ func getOrCreateTorrentByInfoHash(ctx context.Context, infoHash string) (*model.
 
 func getPeerByInfoHashAndPeerID(ctx context.Context, infoHash, peerID string) (*model.Peer, error) {
 	var peer *model.Peer
-	peerStr, _ := db.RDB.Get(ctx, service.GenPeerKey(infoHash, peerID)).Result()
+	peerStr, _ := db.RDB.HGet(ctx, service.GenPeerKey(infoHash), peerID).Result()
 	if len(peerStr) > 0 {
 		err := json.Unmarshal([]byte(peerStr), &peer)
 		if err != nil {
@@ -143,7 +142,26 @@ func updateData(ctx context.Context, req *trackerReq.AnnounceRequest) error {
 		}
 	}
 
+	cleanDeadPeers(ctx, req.InfoHash)
+
 	return nil
+}
+
+func cleanDeadPeers(ctx context.Context, infoHash string) {
+	rand.Seed(time.Now().Unix())
+	if rand.Intn(1000) > 800 {
+		peers, _ := db.RDB.HGetAll(ctx, service.GenPeerKey(infoHash)).Result()
+		for _, peerStr := range peers {
+			if len(peerStr) > 0 {
+				var peer model.Peer
+				if err := json.Unmarshal([]byte(peerStr), &peer); err != nil {
+					if peer.LastActiveAt+int64(constants.PeerExpiration.Seconds()) < time.Now().Unix() {
+						db.RDB.HDel(ctx, service.GenPeerKey(infoHash), peer.PeerID)
+					}
+				}
+			}
+		}
+	}
 }
 
 func updateTrackerStats(ctx context.Context, req *trackerReq.AnnounceRequest, peer *model.Peer) {
@@ -177,7 +195,7 @@ func addToHotSet(ctx context.Context, infoHash string) {
 
 // handle stopped
 func handleStoppedEvent(ctx context.Context, peer *model.Peer, _ *trackerReq.AnnounceRequest) error {
-	_, err := db.RDB.Del(ctx, service.GenPeerKey(peer.InfoHash, peer.PeerID)).Result()
+	_, err := db.RDB.HDel(ctx, service.GenPeerKey(peer.InfoHash), peer.PeerID).Result()
 	if err != nil {
 		return err
 	}
@@ -196,6 +214,7 @@ func handleNormalEvent(ctx context.Context, peer *model.Peer, req *trackerReq.An
 	peer.LeftBytes = req.LeftBytes
 	peer.IsSeeder = req.LeftBytes == 0
 	peer.Agent = req.Agent
+	peer.LastActiveAt = time.Now().Unix()
 	if req.Event == "completed" {
 		peer.FinishedAt = time.Now().Unix()
 		updateTorrentStats(ctx, peer.InfoHash, 1)
@@ -206,7 +225,7 @@ func handleNormalEvent(ctx context.Context, peer *model.Peer, req *trackerReq.An
 		return nil
 	}
 
-	_, err = db.RDB.Set(ctx, service.GenPeerKey(peer.InfoHash, peer.PeerID), peerStr, constants.PeerExpiration).Result()
+	_, err = db.RDB.HSet(ctx, service.GenPeerKey(peer.InfoHash), peer.PeerID, peerStr).Result()
 
 	return err
 }
@@ -225,6 +244,7 @@ func handleNewPeer(ctx context.Context, req *trackerReq.AnnounceRequest) error {
 		IsSeeder:        req.LeftBytes == 0,
 		IsConnectable:   checkConnectable(req.IPv4, req.IPv6, req.Port),
 		Agent:           req.Agent,
+		LastActiveAt:    time.Now().Unix(),
 	}
 
 	currentPeerStr, err := json.Marshal(currentPeer)
@@ -232,7 +252,7 @@ func handleNewPeer(ctx context.Context, req *trackerReq.AnnounceRequest) error {
 		return nil
 	}
 
-	_, err = db.RDB.SetEX(ctx, service.GenPeerKey(req.InfoHash, req.PeerID), currentPeerStr, constants.PeerExpiration).Result()
+	_, err = db.RDB.HSet(ctx, service.GenPeerKey(req.InfoHash), req.PeerID, currentPeerStr).Result()
 	if err != nil {
 		return err
 	}
@@ -252,12 +272,11 @@ func updateTorrentStats(ctx context.Context, infoHash string, snatcherCountIncr 
 	}
 
 	rand.Seed(time.Now().UnixNano())
-	if rand.Int() > 0 {
+	if rand.Intn(1000) > 800 {
 		var seederCount, leecherCount int64
 
-		keys, _ := db.RDB.Keys(ctx, service.GenPeerSearchPattern(infoHash)).Result()
-		for _, key := range keys {
-			peerStr, _ := db.RDB.Get(ctx, key).Result()
+		peers, _ := db.RDB.HGetAll(ctx, service.GenPeerKey(infoHash)).Result()
+		for _, peerStr := range peers {
 			if len(peerStr) > 0 {
 				var peer model.Peer
 				if err := json.Unmarshal([]byte(peerStr), &peer); err != nil {
@@ -280,27 +299,12 @@ func updateTorrentStats(ctx context.Context, infoHash string, snatcherCountIncr 
 func checkConnectable(ipv4 string, ipv6 string, port uint32) bool {
 	connectable := false
 
-	rand.Seed(time.Now().Unix())
-	if rand.Intn(1000) > 800 {
-		if ipv6 != "" {
-			if _, err := net.DialTimeout(
-				"tcp6",
-				fmt.Sprintf("[%v]:%v", ipv6, port),
-				time.Second,
-			); err == nil {
-				connectable = true
-			}
-		}
+	if ipv6 != "" {
+		connectable = !net.ParseIP(ipv6).IsPrivate()
+	}
 
-		if !connectable && ipv4 != "" {
-			if _, err := net.DialTimeout(
-				"tcp4",
-				fmt.Sprintf("%v:%v", ipv4, port),
-				time.Second,
-			); err == nil {
-				connectable = true
-			}
-		}
+	if !connectable && ipv4 != "" {
+		connectable = !net.ParseIP(ipv4).IsPrivate()
 	}
 
 	return connectable
@@ -315,20 +319,9 @@ func retrievePeerList(ctx *gin.Context, req *trackerReq.AnnounceRequest) (model.
 
 	peerLimitCount := calPeerLimitCount(req.NumWanted)
 
-	keys, _ := db.RDB.Keys(ctx, service.GenPeerSearchPattern(req.InfoHash)).Result()
-	if len(keys) > 0 {
-		rand.Seed(time.Now().UnixNano())
-		rand.Shuffle(len(keys), func(i, j int) {
-			keys[i], keys[j] = keys[j], keys[i]
-		})
-	}
+	peersMap, _ := db.RDB.HGetAll(ctx, service.GenPeerKey(req.InfoHash)).Result()
 
-	for _, key := range keys {
-		peerStr, _ := db.RDB.Get(ctx, key).Result()
-		if len(peerStr) <= 0 {
-			continue
-		}
-
+	for _, peerStr := range peersMap {
 		var peer model.Peer
 		err := json.Unmarshal([]byte(peerStr), &peer)
 		if err != nil {
