@@ -80,8 +80,8 @@ func (s AnnounceResponse) BEncode(torrent *model.Torrent, modelSlice interface{}
 // 计算请求时间间隔，防止大量请求同时发生
 // interval = c/(1+a*e^(-kx)); c = 7200; a = 3; k = 0.0001
 // 新种子 30 分钟，旧种子 120 分钟
-func genInterval(createdAt time.Time) uint32 {
-	diffSeconds := time.Now().Unix() - createdAt.Unix()
+func genInterval(createdAt int64) uint32 {
+	diffSeconds := time.Now().Unix() - createdAt
 	if diffSeconds < 0 {
 		return 0
 	}

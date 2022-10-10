@@ -1,15 +1,12 @@
 package model
 
-import "time"
-
 type Torrent struct {
-	Base
-	InfoHash      string `gorm:"size:40;not null;unique"`
-	SeederCount   uint64 `gorm:"not null"`
-	LeecherCount  uint64 `gorm:"not null"`
-	SnatcherCount uint64 `gorm:"not null"`
-	MetaInfo      string `gorm:"type:mediumtext;default:'';not null"`
-	LastActiveAt  time.Time
+	InfoHash      string
+	SeederCount   uint64
+	LeecherCount  uint64
+	SnatcherCount uint64
+	MetaInfo      string
+	CreatedAt     int64
 }
 
 type TorrentSlice []Torrent

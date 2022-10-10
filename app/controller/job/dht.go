@@ -1,10 +1,13 @@
 package job
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/HunterXuan/bt/app/domain/model"
+	"github.com/HunterXuan/bt/app/domain/service"
 	"github.com/HunterXuan/bt/app/infra/config"
+	"github.com/HunterXuan/bt/app/infra/constants"
 	"github.com/HunterXuan/bt/app/infra/db"
 	"github.com/HunterXuan/bt/app/infra/dht"
 	"github.com/anacrolix/torrent/bencode"
@@ -67,9 +70,7 @@ func (d *DHT) Run() {
 
 			if jsonInfo, err := json.Marshal(info); err != nil {
 				log.Println("DHT marshal info err:", infoHash, err)
-			} else if err := db.DB.Model(&model.Torrent{}).
-				Where("info_hash = ?", infoHash).
-				Updates(map[string]interface{}{"meta_info": string(jsonInfo)}).Error; err != nil {
+			} else if err := db.RDB.Set(context.Background(), service.GenTorrentMetaInfoKey(infoHash), jsonInfo, 0); err != nil {
 				log.Println("DHT update info err:", infoHash, err)
 			} else {
 				log.Println("DHT update info success:", infoHash)
@@ -80,18 +81,30 @@ func (d *DHT) Run() {
 	log.Println("DHT finish collecting torrents info")
 }
 
-func getHotTorrents() []model.Torrent {
-	var torrents []model.Torrent
-	findRes := db.DB.Model(&model.Torrent{}).
-		Select("id, info_hash").
-		Where("meta_info = ?", "").
-		Order("last_active_at desc").
-		Limit(16).
-		Find(&torrents)
-	if findRes.Error != nil {
-		log.Println("DHT getHotTorrents Err:", findRes.Error)
-	} else {
-		log.Println("DHT getHotTorrents Torrent Count:", len(torrents))
+func getHotTorrents() model.TorrentSlice {
+	ctx := context.Background()
+	limit := 16
+
+	hotInfoHashes, err := db.RDB.ZRange(ctx, constants.TorrentHotSetKey, 0, constants.TorrentHotSetCapacity).Result()
+	if err != nil {
+		return nil
+	}
+
+	var torrents model.TorrentSlice
+	for _, infoHash := range hotInfoHashes {
+		if len(torrents) > limit {
+			break
+		}
+
+		torrentStr, err := db.RDB.Get(ctx, service.GenTorrentPlaceHoldKey(infoHash)).Result()
+		if err != nil {
+			continue
+		}
+
+		var torrent model.Torrent
+		if err := json.Unmarshal([]byte(torrentStr), &torrent); err == nil && len(torrent.MetaInfo) == 0 {
+			torrents = append(torrents, torrent)
+		}
 	}
 
 	return torrents

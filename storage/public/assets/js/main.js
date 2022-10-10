@@ -4,21 +4,9 @@ const App = {
             loading: true,
             trackerUrl: window.location.href + 'announce',
             index: {
-                torrent: {
-                    total: 0,
-                    active: 0,
-                    dead: 0,
-                },
-                peer: {
-                    total: 0,
-                    seeder: 0,
-                    leecher: 0,
-                },
-                traffic: {
-                    total: 0,
-                    upload: 0,
-                    download: 0,
-                }
+                torrent: 0,
+                peer: 0,
+                traffic: 0
             },
             hot: []
         };
@@ -27,17 +15,11 @@ const App = {
         fetch("/stats").then(res => res.json()).then((res) => {
             if (res.data.index) {
                 const resIndexData = res.data.index;
-                this.index.torrent.total = this.humanizeAmount(resIndexData.torrent.total);
-                this.index.torrent.active = this.humanizeAmount(resIndexData.torrent.active);
-                this.index.torrent.dead = this.humanizeAmount(resIndexData.torrent.dead);
+                this.index.torrent = this.humanizeAmount(resIndexData.torrent);
 
-                this.index.peer.total = this.humanizeAmount(resIndexData.peer.total);
-                this.index.peer.seeder = this.humanizeAmount(resIndexData.peer.seeder);
-                this.index.peer.leecher = this.humanizeAmount(resIndexData.peer.leecher);
+                this.index.peer = this.humanizeAmount(resIndexData.peer);
 
-                this.index.traffic.total = this.humanizeAmount(resIndexData.traffic.total, 'memory');
-                this.index.traffic.upload = this.humanizeAmount(resIndexData.traffic.upload, 'memory');
-                this.index.traffic.download = this.humanizeAmount(resIndexData.traffic.download, 'memory');
+                this.index.traffic = this.humanizeAmount(resIndexData.traffic, 'memory');
             }
             this.hot = res.data.hot || this.hot;
         }).catch((err) => {

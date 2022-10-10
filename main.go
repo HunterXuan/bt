@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/HunterXuan/bt/app/infra/cache"
 	"github.com/HunterXuan/bt/app/infra/config"
 	"github.com/HunterXuan/bt/app/infra/db"
 	"github.com/HunterXuan/bt/app/infra/dht"
@@ -20,8 +19,7 @@ import (
 func main() {
 	// Init
 	config.InitConfig()
-	db.InitDB()
-	cache.InitRedisClient()
+	db.InitRedisClient()
 	scheduler.InitScheduler()
 	dht.InitDHT()
 

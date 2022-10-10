@@ -9,13 +9,13 @@
 }
 
 .stats-block {
-    background: darkcyan;
+    background: lightseagreen;
     padding: 0 40px;
 }
 
 .stats-row {
-    height: 100vh;
-    background: darkcyan;
+    height: 24vh;
+    background: lightseagreen;
 }
 
 .stats-title {

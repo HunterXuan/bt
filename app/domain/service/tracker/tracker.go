@@ -1,18 +1,17 @@
 package tracker
 
 import (
-	"database/sql"
+	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	trackerReq "github.com/HunterXuan/bt/app/controller/request/tracker"
 	"github.com/HunterXuan/bt/app/domain/model"
-	"github.com/HunterXuan/bt/app/infra/cache"
+	"github.com/HunterXuan/bt/app/domain/service"
+	"github.com/HunterXuan/bt/app/infra/constants"
 	"github.com/HunterXuan/bt/app/infra/db"
-	"github.com/HunterXuan/bt/app/infra/util/convert"
 	customError "github.com/HunterXuan/bt/app/infra/util/error"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"github.com/go-redis/redis/v8"
 	"log"
 	"math/rand"
 	"net"
@@ -21,7 +20,7 @@ import (
 
 // GenScrapeResult 生成Scrape结果
 func GenScrapeResult(ctx *gin.Context, req *trackerReq.ScrapeRequest) (model.TorrentSlice, *customError.CustomError) {
-	torrentSlice, err := getOrCreateTorrentByInfoHashSlice(req.InfoHashSlice)
+	torrentSlice, err := getOrCreateTorrentByInfoHashSlice(ctx, req.InfoHashSlice)
 	if err != nil {
 		return nil, customError.NewBadRequestError("TRACKER__INVALID_PARAMS")
 	}
@@ -32,120 +31,114 @@ func GenScrapeResult(ctx *gin.Context, req *trackerReq.ScrapeRequest) (model.Tor
 // DealWithClientReport 处理客户端上报的请求
 func DealWithClientReport(ctx *gin.Context, req *trackerReq.AnnounceRequest) (*model.Torrent, model.PeerSlice, *customError.CustomError) {
 	// 查询种子
-	var torrent *model.Torrent
-	torrent = getTorrentFromCache(ctx, req.InfoHash)
-	if torrent == nil {
-		newTorrent, err := getOrCreateTorrentByInfoHash(req.InfoHash)
-		if newTorrent == nil || err != nil {
-			return nil, nil, customError.NewBadRequestError("TRACKER__INVALID_PARAMS")
-		}
-
-		torrent = newTorrent
-	}
-	_ = setTorrentToCache(ctx, req.InfoHash, torrent)
+	torrent, _ := getOrCreateTorrentByInfoHash(ctx, req.InfoHash)
 
 	// 更新数据
-	if err := updateData(torrent, req); err != nil {
+	if err := updateData(ctx, req); err != nil {
 		return nil, nil, customError.NewBadRequestError("TRACKER__INVALID_PARAMS")
 	}
 
 	// 查找同伴列表
-	peerSlice, err := retrievePeerList(ctx, torrent, req)
+	peerSlice, err := retrievePeerList(ctx, req)
 	if err != nil {
 		return nil, nil, customError.NewBadRequestError("TRACKER__INVALID_PARAMS")
 	}
 
+	addToHotSet(ctx, req.InfoHash)
+
 	return torrent, peerSlice, nil
 }
 
-func getOrCreateTorrentByInfoHashSlice(infoHashSlice []string) (model.TorrentSlice, error) {
+func getOrCreateTorrentByInfoHashSlice(ctx context.Context, infoHashSlice []string) (model.TorrentSlice, error) {
 	var torrentSlice model.TorrentSlice
-	findResult := db.DB.Where("info_hash IN ?", infoHashSlice).Find(&torrentSlice)
 
-	if !errors.Is(findResult.Error, gorm.ErrRecordNotFound) {
-		return nil, customError.NewBadRequestError("TRACKER__INVALID_PARAMS")
+	for _, infoHash := range infoHashSlice {
+		torrent, _ := getOrCreateTorrentByInfoHash(ctx, infoHash)
+		torrentSlice = append(torrentSlice, *torrent)
 	}
-
-	if len(torrentSlice) < len(infoHashSlice) {
-		var foundInfoHash map[string]bool
-		for _, torrent := range torrentSlice {
-			foundInfoHash[torrent.InfoHash] = true
-		}
-
-		var missingTorrentSlice model.TorrentSlice
-		for _, infoHash := range infoHashSlice {
-			if _, ok := foundInfoHash[infoHash]; !ok {
-				missingTorrentSlice = append(missingTorrentSlice, model.Torrent{
-					InfoHash:     infoHash,
-					LastActiveAt: time.Now(),
-				})
-			}
-		}
-
-		if len(missingTorrentSlice) > 0 {
-			db.DB.CreateInBatches(missingTorrentSlice, len(missingTorrentSlice))
-		}
-	}
-
-	db.DB.Where("info_hash IN ?", infoHashSlice).Find(&torrentSlice)
 
 	return torrentSlice, nil
 }
 
 // getOrCreateTorrent 查询或创建
-func getOrCreateTorrentByInfoHash(infoHash string) (*model.Torrent, error) {
+func getOrCreateTorrentByInfoHash(ctx context.Context, infoHash string) (*model.Torrent, error) {
 	var torrent *model.Torrent
-	takeResult := db.DB.Where("info_hash = ?", infoHash).Take(&torrent)
-	if errors.Is(takeResult.Error, gorm.ErrRecordNotFound) {
-		torrent.InfoHash = infoHash
-		torrent.LastActiveAt = time.Now()
-		if createResult := db.DB.Create(&torrent); createResult.Error != nil {
-			return nil, createResult.Error
+
+	torrentStr, _ := db.RDB.Get(ctx, service.GenTorrentPlaceHoldKey(infoHash)).Result()
+	if len(torrentStr) > 0 {
+		err := json.Unmarshal([]byte(torrentStr), &torrent)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// perhaps new torrent
+		db.RDB.IncrBy(ctx, constants.TrackerTorrentStatsKey, 1)
+		torrent = &model.Torrent{
+			InfoHash:      infoHash,
+			SeederCount:   0,
+			LeecherCount:  0,
+			SnatcherCount: 0,
+			MetaInfo:      "",
+			CreatedAt:     time.Now().Unix(),
+		}
+	}
+
+	rand.Seed(time.Now().Unix())
+	if len(torrentStr) == 0 || rand.Intn(1000) > 500 {
+		seederCount, _ := db.RDB.Get(ctx, service.GenTorrentSeederCountKey(infoHash)).Uint64()
+		leecherCount, _ := db.RDB.Get(ctx, service.GenTorrentLeecherCountKey(infoHash)).Uint64()
+		snatcherCount, _ := db.RDB.Get(ctx, service.GenTorrentSnatcherCountKey(infoHash)).Uint64()
+		metaInfoStr, _ := db.RDB.Get(ctx, service.GenTorrentMetaInfoKey(infoHash)).Result()
+		torrent.SeederCount = seederCount
+		torrent.LeecherCount = leecherCount
+		torrent.SnatcherCount = snatcherCount
+		torrent.MetaInfo = metaInfoStr
+
+		torrentStr, err := json.Marshal(torrent)
+		if err != nil {
+			return nil, err
 		}
 
-		return torrent, nil
+		db.RDB.Set(ctx, service.GenTorrentPlaceHoldKey(infoHash), torrentStr, constants.TorrentExpiration)
 	}
 
-	if takeResult.Error != nil {
-		return nil, takeResult.Error
-	}
-
-	return torrent, takeResult.Error
+	return torrent, nil
 }
 
-func getPeerByTorrentIDAndPeerID(torrentID uint64, peerID string) (*model.Peer, error) {
+func getPeerByInfoHashAndPeerID(ctx context.Context, infoHash, peerID string) (*model.Peer, error) {
 	var peer *model.Peer
-	takeResult := db.DB.Where("torrent_id = ? AND peer_id = ?", torrentID, peerID).Take(&peer)
-	if takeResult.Error != nil {
-		if errors.Is(takeResult.Error, gorm.ErrRecordNotFound) {
-			return nil, nil
+	peerStr, _ := db.RDB.Get(ctx, service.GenPeerKey(infoHash, peerID)).Result()
+	if len(peerStr) > 0 {
+		err := json.Unmarshal([]byte(peerStr), &peer)
+		if err != nil {
+			return nil, err
 		}
-
-		return nil, takeResult.Error
 	}
 
 	return peer, nil
 }
 
 // 更新数据
-func updateData(torrent *model.Torrent, req *trackerReq.AnnounceRequest) error {
-	peer, err := getPeerByTorrentIDAndPeerID(torrent.ID, req.PeerID)
+func updateData(ctx context.Context, req *trackerReq.AnnounceRequest) error {
+	peer, err := getPeerByInfoHashAndPeerID(ctx, req.InfoHash, req.PeerID)
 	if err != nil {
 		return err
 	}
 
+	updateTrackerStats(ctx, req, peer)
+
 	if peer != nil {
 		if req.Event == "stopped" {
-			if err := handleStoppedEvent(peer, req); err != nil {
+			if err := handleStoppedEvent(ctx, peer, req); err != nil {
 				return err
 			}
 		} else {
-			if err := handleNormalEvent(peer, req); err != nil {
+			if err := handleNormalEvent(ctx, peer, req); err != nil {
 				return err
 			}
 		}
 	} else {
-		if err := handleNewPeer(torrent, req); err != nil {
+		if err := handleNewPeer(ctx, req); err != nil {
 			return err
 		}
 	}
@@ -153,42 +146,75 @@ func updateData(torrent *model.Torrent, req *trackerReq.AnnounceRequest) error {
 	return nil
 }
 
-// handle stopped
-func handleStoppedEvent(peer *model.Peer, req *trackerReq.AnnounceRequest) error {
-	deleteResult := db.DB.Delete(&peer)
-	if deleteResult.Error != nil {
-		return deleteResult.Error
+func updateTrackerStats(ctx context.Context, req *trackerReq.AnnounceRequest, peer *model.Peer) {
+	var trafficBytesIncr int64
+	if peer == nil {
+		trafficBytesIncr = int64(req.UploadedBytes + req.DownloadedBytes)
+	} else {
+		trafficBytesIncr = int64(req.UploadedBytes + req.DownloadedBytes - peer.UploadedBytes - peer.DownloadedBytes)
 	}
 
-	updateTorrentStats(peer.TorrentID, 0)
+	if peer == nil {
+		db.RDB.IncrBy(ctx, constants.TrackerPeerStatsKey, 1)
+	} else if req.Event == "stopped" {
+		db.RDB.DecrBy(ctx, constants.TrackerPeerStatsKey, 1)
+	}
+
+	db.RDB.IncrBy(ctx, constants.TrackerTrafficStatsKey, trafficBytesIncr)
+}
+
+func addToHotSet(ctx context.Context, infoHash string) {
+	db.RDB.ZAdd(ctx, constants.TorrentHotSetKey, &redis.Z{
+		Score:  float64(time.Now().Unix()),
+		Member: infoHash,
+	})
+
+	count, err := db.RDB.ZCard(ctx, constants.TorrentHotSetKey).Result()
+	if err != nil && count > constants.TorrentHotSetCapacity {
+		db.RDB.ZRemRangeByRank(ctx, constants.TorrentHotSetKey, 0, 0)
+	}
+}
+
+// handle stopped
+func handleStoppedEvent(ctx context.Context, peer *model.Peer, _ *trackerReq.AnnounceRequest) error {
+	_, err := db.RDB.Del(ctx, service.GenPeerKey(peer.InfoHash, peer.PeerID)).Result()
+	if err != nil {
+		return err
+	}
+
+	updateTorrentStats(ctx, peer.InfoHash, 0)
 
 	return nil
 }
 
 // handle normal event
-func handleNormalEvent(peer *model.Peer, req *trackerReq.AnnounceRequest) error {
+func handleNormalEvent(ctx context.Context, peer *model.Peer, req *trackerReq.AnnounceRequest) error {
 	peer.Ipv4 = req.IPv4
 	peer.Ipv6 = req.IPv6
 	peer.UploadedBytes = req.UploadedBytes
 	peer.DownloadedBytes = req.DownloadedBytes
 	peer.LeftBytes = req.LeftBytes
-	peer.IsSeeder = convert.ParseBoolToUint8(req.LeftBytes == 0)
+	peer.IsSeeder = req.LeftBytes == 0
 	peer.Agent = req.Agent
 	if req.Event == "completed" {
-		peer.FinishedAt = sql.NullTime{Time: time.Now()}
-		updateTorrentStats(peer.TorrentID, 1)
-	}
-	if saveResult := db.DB.Save(&peer); saveResult.Error != nil {
-		return saveResult.Error
+		peer.FinishedAt = time.Now().Unix()
+		updateTorrentStats(ctx, peer.InfoHash, 1)
 	}
 
-	return nil
+	peerStr, err := json.Marshal(peer)
+	if err != nil {
+		return nil
+	}
+
+	_, err = db.RDB.Set(ctx, service.GenPeerKey(peer.InfoHash, peer.PeerID), peerStr, constants.PeerExpiration).Result()
+
+	return err
 }
 
 // handle new peer
-func handleNewPeer(torrent *model.Torrent, req *trackerReq.AnnounceRequest) error {
+func handleNewPeer(ctx context.Context, req *trackerReq.AnnounceRequest) error {
 	currentPeer := &model.Peer{
-		TorrentID:       torrent.ID,
+		InfoHash:        req.InfoHash,
 		PeerID:          req.PeerID,
 		Ipv4:            req.IPv4,
 		Ipv6:            req.IPv6,
@@ -196,48 +222,57 @@ func handleNewPeer(torrent *model.Torrent, req *trackerReq.AnnounceRequest) erro
 		UploadedBytes:   req.UploadedBytes,
 		DownloadedBytes: req.DownloadedBytes,
 		LeftBytes:       req.LeftBytes,
-		IsSeeder:        convert.ParseBoolToUint8(req.LeftBytes == 0),
-		IsConnectable:   convert.ParseBoolToUint8(checkConnectable(req.IPv4, req.IPv6, req.Port)),
+		IsSeeder:        req.LeftBytes == 0,
+		IsConnectable:   checkConnectable(req.IPv4, req.IPv6, req.Port),
 		Agent:           req.Agent,
 	}
 
-	if createResult := db.DB.Create(&currentPeer); createResult.Error != nil {
-		return createResult.Error
+	currentPeerStr, err := json.Marshal(currentPeer)
+	if err != nil {
+		return nil
 	}
 
-	updateTorrentStats(torrent.ID, 0)
+	_, err = db.RDB.SetEX(ctx, service.GenPeerKey(req.InfoHash, req.PeerID), currentPeerStr, constants.PeerExpiration).Result()
+	if err != nil {
+		return err
+	}
+
+	updateTorrentStats(ctx, req.InfoHash, 0)
 
 	return nil
 }
 
 // 更新种子数据
-func updateTorrentStats(id uint64, snatcherCount int8) {
-	updateValues := map[string]interface{}{
-		"snatcher_count": gorm.Expr("snatcher_count + 1 * ?", snatcherCount),
-		"last_active_at": time.Now(),
+func updateTorrentStats(ctx context.Context, infoHash string, snatcherCountIncr int64) {
+	if snatcherCountIncr != 0 {
+		_, err := db.RDB.IncrBy(ctx, service.GenTorrentSnatcherCountKey(infoHash), snatcherCountIncr).Result()
+		if err != nil {
+			log.Println("snatcherCountIncr Err:", err)
+		}
 	}
 
 	rand.Seed(time.Now().UnixNano())
 	if rand.Int() > 0 {
-		var peerAggResult *model.PeerAggResult
-		aggResult := db.DB.Model(&model.Peer{}).
-			Select("torrent_id, count(*) AS peer_count, sum(is_seeder) AS seeder_count").
-			Where("torrent_id = ?", id).
-			Group("torrent_id").
-			Take(&peerAggResult)
-		if aggResult.Error != nil {
-			log.Println("peerAggResult Err:", aggResult.Error)
-		} else {
-			updateValues["seeder_count"] = peerAggResult.SeederCount
-			updateValues["leecher_count"] = peerAggResult.PeerCount - peerAggResult.SeederCount
-		}
-	}
+		var seederCount, leecherCount int64
 
-	updateResult := db.DB.Model(&model.Torrent{}).
-		Where("id = ?", id).
-		Updates(updateValues)
-	if updateResult.Error != nil {
-		log.Println("addSeederCount Err:", updateResult.Error)
+		keys, _ := db.RDB.Keys(ctx, service.GenPeerSearchPattern(infoHash)).Result()
+		for _, key := range keys {
+			peerStr, _ := db.RDB.Get(ctx, key).Result()
+			if len(peerStr) > 0 {
+				var peer model.Peer
+				if err := json.Unmarshal([]byte(peerStr), &peer); err != nil {
+					if peer.IsSeeder {
+						seederCount = seederCount + 1
+						continue
+					}
+				}
+			}
+
+			leecherCount = leecherCount + 1
+		}
+
+		db.RDB.Set(ctx, service.GenTorrentSeederCountKey(infoHash), seederCount, constants.TorrentExpiration)
+		db.RDB.Set(ctx, service.GenTorrentLeecherCountKey(infoHash), leecherCount, constants.TorrentExpiration)
 	}
 }
 
@@ -270,33 +305,45 @@ func checkConnectable(ipv4 string, ipv6 string, port uint32) bool {
 
 // 获取同伴列表
 // 如果当前用户为做种者，只返回其它非做种者
-func retrievePeerList(ctx *gin.Context, torrent *model.Torrent, req *trackerReq.AnnounceRequest) (model.PeerSlice, error) {
-	columns := []string{"ipv4", "ipv6", "port"}
-	if req.Compact != 1 || req.NoPeerID != 1 {
-		columns = append(columns, "peer_id")
-	}
+func retrievePeerList(ctx *gin.Context, req *trackerReq.AnnounceRequest) (model.PeerSlice, error) {
+	var peers model.PeerSlice
 
 	isSeeder := req.LeftBytes == 0
-	if isSeeder {
-		var peerSlice model.PeerSlice
-		findResult := db.DB.Where(
-			"torrent_id = ? AND peer_id <> ? AND is_seeder <> ?",
-			torrent.ID,
-			req.PeerID,
-			convert.ParseBoolToUint8(true),
-		).Order("peer_id").Limit(calPeerLimitCount(req.NumWanted)).Find(&peerSlice)
 
-		return peerSlice, findResult.Error
+	peerLimitCount := calPeerLimitCount(req.NumWanted)
+
+	keys, _ := db.RDB.Keys(ctx, service.GenPeerSearchPattern(req.InfoHash)).Result()
+	if len(keys) > 0 {
+		rand.Seed(time.Now().UnixNano())
+		rand.Shuffle(len(keys), func(i, j int) {
+			keys[i], keys[j] = keys[j], keys[i]
+		})
 	}
 
-	var peerSlice model.PeerSlice
-	findResult := db.DB.Where(
-		"torrent_id = ? AND peer_id <> ?",
-		torrent.ID,
-		req.PeerID,
-	).Order("peer_id").Limit(calPeerLimitCount(req.NumWanted)).Find(&peerSlice)
+	for _, key := range keys {
+		peerStr, _ := db.RDB.Get(ctx, key).Result()
+		if len(peerStr) <= 0 {
+			continue
+		}
 
-	return peerSlice, findResult.Error
+		var peer model.Peer
+		err := json.Unmarshal([]byte(peerStr), &peer)
+		if err != nil {
+			continue
+		}
+
+		if isSeeder && peer.IsSeeder {
+			continue
+		}
+
+		if len(peers) >= peerLimitCount {
+			break
+		}
+
+		peers = append(peers, peer)
+	}
+
+	return peers, nil
 }
 
 // 获取同伴数量
@@ -306,34 +353,4 @@ func calPeerLimitCount(numWanted uint8) int {
 	}
 
 	return 50
-}
-
-func setTorrentToCache(ctx *gin.Context, infoHash string, torrent *model.Torrent) error {
-	bytes, err := json.Marshal(torrent)
-	if err != nil {
-		return err
-	}
-
-	_, err = cache.RDB.SetEX(ctx, genTorrentCacheKey(infoHash), bytes, time.Hour).Result()
-	return err
-}
-
-func getTorrentFromCache(ctx *gin.Context, infoHash string) *model.Torrent {
-	var torrent model.Torrent
-	val, err := cache.RDB.Get(ctx, genTorrentCacheKey(infoHash)).Result()
-	if err != nil {
-		log.Println("getTorrentFromCache Err:", err)
-		return nil
-	}
-
-	if err := json.Unmarshal([]byte(val), &torrent); err != nil {
-		log.Println("getTorrentFromCache Err:", err)
-		return nil
-	}
-
-	return &torrent
-}
-
-func genTorrentCacheKey(infoHash string) string {
-	return fmt.Sprintf("TORRENT_WITH_HASH_%v", infoHash)
 }

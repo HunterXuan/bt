@@ -6,12 +6,12 @@ import (
 	statsReq "github.com/HunterXuan/bt/app/controller/request/stats"
 	statsResp "github.com/HunterXuan/bt/app/controller/response/stats"
 	"github.com/HunterXuan/bt/app/domain/model"
-	"github.com/HunterXuan/bt/app/infra/cache"
+	"github.com/HunterXuan/bt/app/domain/service"
+	"github.com/HunterXuan/bt/app/infra/constants"
 	"github.com/HunterXuan/bt/app/infra/db"
 	customError "github.com/HunterXuan/bt/app/infra/util/error"
 	"github.com/gin-gonic/gin"
 	"log"
-	"time"
 )
 
 // GetAllStats 获取统计数据
@@ -25,13 +25,14 @@ func GetAllStats(ctx *gin.Context, req *statsReq.AllStatsRequest) (*statsResp.Al
 
 // UpdateStatsCache 更新统计数据缓存
 func UpdateStatsCache() error {
+	ctx := context.Background()
 	stats := &statsResp.AllStatsResponse{
 		Index: statsResp.IndexItem{
-			Torrent: getTorrentIndexStats(),
-			Peer:    getPeerIndexStats(),
-			Traffic: getTrafficIndexStats(),
+			Torrent: getTorrentCount(ctx),
+			Peer:    getPeerCount(ctx),
+			Traffic: getTrafficCount(ctx),
 		},
-		Hot: getHotStats(),
+		Hot: getHotStats(ctx),
 	}
 
 	return setStatsToCache(context.Background(), stats)
@@ -40,7 +41,7 @@ func UpdateStatsCache() error {
 func getStatsFromCache(ctx *gin.Context) (*statsResp.AllStatsResponse, error) {
 	var stats *statsResp.AllStatsResponse
 
-	val, err := cache.RDB.Get(ctx, genStatsCacheKey()).Result()
+	val, err := db.RDB.Get(ctx, constants.TrackerStatsCacheKey).Result()
 	if err != nil {
 		log.Println("getStatsFromCache Err:", err)
 		return nil, err
@@ -61,7 +62,7 @@ func setStatsToCache(ctx context.Context, stats *statsResp.AllStatsResponse) err
 		return err
 	}
 
-	_, err = cache.RDB.SetEX(ctx, genStatsCacheKey(), bytes, time.Hour).Result()
+	_, err = db.RDB.Set(ctx, constants.TrackerStatsCacheKey, bytes, 0).Result()
 	if err != nil {
 		log.Println("setStatsToCache Err:", err)
 	}
@@ -69,58 +70,60 @@ func setStatsToCache(ctx context.Context, stats *statsResp.AllStatsResponse) err
 	return err
 }
 
-func genStatsCacheKey() string {
-	return "STATS_CACHE"
-}
-
-func getTorrentIndexStats() statsResp.TorrentStats {
-	var totalCount, activeCount, deadCount int64
-	db.DB.Model(&model.Torrent{}).Count(&totalCount)
-	db.DB.Model(&model.Torrent{}).Where("last_active_at > ?", time.Now().Add(-24*time.Hour)).Count(&activeCount)
-	db.DB.Model(&model.Torrent{}).Where("last_active_at < ?", time.Now().Add(-72*time.Hour)).Count(&deadCount)
-
-	return statsResp.TorrentStats{
-		Total:  uint64(totalCount),
-		Active: uint64(activeCount),
-		Dead:   uint64(deadCount),
-	}
-}
-
-func getPeerIndexStats() statsResp.PeerStats {
-	var totalCount, seederCount int64
-	db.DB.Model(&model.Peer{}).Count(&totalCount)
-	db.DB.Model(&model.Peer{}).Where("is_seeder = ?", 1).Count(&seederCount)
-
-	return statsResp.PeerStats{
-		Total:   uint64(totalCount),
-		Seeder:  uint64(seederCount),
-		Leacher: uint64(totalCount - seederCount),
-	}
-}
-
-func getTrafficIndexStats() statsResp.TrafficStats {
-	var trafficStats statsResp.TrafficStats
-	takeRes := db.DB.Model(&model.Peer{}).
-		Select("sum(uploaded_bytes) AS upload, sum(downloaded_bytes) AS download").
-		Take(&trafficStats)
-	if takeRes.Error != nil {
-		log.Println("getTrafficIndexStats Err:", takeRes.Error)
+func getTorrentCount(ctx context.Context) uint64 {
+	keys, err := db.RDB.Keys(ctx, constants.TrackerTorrentCountPattern).Result()
+	if err != nil {
+		cacheCount, _ := db.RDB.Get(ctx, constants.TrackerTorrentStatsKey).Uint64()
+		return cacheCount
 	}
 
-	trafficStats.Total = trafficStats.Upload + trafficStats.Download
+	realCount := uint64(len(keys))
+	db.RDB.Set(ctx, constants.TrackerTorrentStatsKey, realCount, 0)
 
-	return trafficStats
+	return realCount
 }
 
-func getHotStats() []statsResp.HotTorrentItem {
+func getPeerCount(ctx context.Context) uint64 {
+	keys, err := db.RDB.Keys(ctx, constants.TrackerPeerCountPattern).Result()
+	if err != nil {
+		cacheCount, _ := db.RDB.Get(ctx, constants.TrackerPeerStatsKey).Uint64()
+		return cacheCount
+	}
+
+	realCount := uint64(len(keys))
+	db.RDB.Set(ctx, constants.TrackerPeerStatsKey, realCount, 0)
+
+	return realCount
+}
+
+func getTrafficCount(ctx context.Context) uint64 {
+	val, _ := db.RDB.Get(ctx, constants.TrackerTrafficStatsKey).Uint64()
+	return val
+}
+
+func getHotStats(ctx context.Context) []statsResp.HotTorrentItem {
+	hotInfoHashes, err := db.RDB.ZRange(ctx, constants.TorrentHotSetKey, 0, constants.TorrentHotSetCapacity).Result()
+	if err != nil {
+		return nil
+	}
+
 	var torrents []statsResp.HotTorrentItem
-	findRes := db.DB.Model(&model.Torrent{}).
-		Select("info_hash, seeder_count, leecher_count, snatcher_count, meta_info").
-		Order("leecher_count desc").
-		Limit(100).
-		Find(&torrents)
-	if findRes.Error != nil {
-		log.Println("getHotStats Err:", findRes.Error)
+	for _, infoHash := range hotInfoHashes {
+		torrentStr, err := db.RDB.Get(ctx, service.GenTorrentPlaceHoldKey(infoHash)).Result()
+		if err != nil {
+			continue
+		}
+
+		var torrent model.Torrent
+		if err := json.Unmarshal([]byte(torrentStr), &torrent); err == nil {
+			torrents = append(torrents, statsResp.HotTorrentItem{
+				InfoHash:      infoHash,
+				SeederCount:   torrent.SeederCount,
+				LeecherCount:  torrent.LeecherCount,
+				SnatcherCount: torrent.SnatcherCount,
+				MetaInfo:      torrent.MetaInfo,
+			})
+		}
 	}
 
 	return torrents

@@ -22,7 +22,7 @@
                 <h3 style="color: #F56C6C;">Simple and High Performance</h3>
 
                 <p>Another bt tracker written in golang, based on the gin framework.</p>
-                <p>A simple but high-performance, cloud-ready tracker that only needs MySQL for persistence, and Redis for cache.</p>
+                <p>A simple but high-performance, cloud-ready tracker that only needs Redis.</p>
 
                 <el-tag size="large" type="success" effect="dark">Tracker Address: {{ trackerUrl }}</el-tag>
 
@@ -36,78 +36,28 @@
 
         <div class="stats-block">
             <el-row class="stats-row" justify="center" align="middle" :gutter="56">
-                <el-col :span="24">
-                    <div class="stats-title"><h1>Tracker Stats</h1></div>
-                </el-col>
-
-                <!-- torrent stats begin -->
+                <!-- stats begin -->
                 <el-col :span="8">
                     <el-card class="box-card index-card">
-                        <div class="number">{{ index.torrent.total }}</div>
+                        <div class="number">{{ index.torrent }}</div>
                         <div class="comment">Total Torrents</div>
                     </el-card>
                 </el-col>
 
                 <el-col :span="8">
                     <el-card class="box-card index-card">
-                        <div class="number">{{ index.torrent.active }}</div>
-                        <div class="comment">Active Torrents</div>
-                    </el-card>
-                </el-col>
-
-                <el-col :span="8">
-                    <el-card class="box-card index-card">
-                        <div class="number">{{ index.torrent.dead }}</div>
-                        <div class="comment">Dead Torrents</div>
-                    </el-card>
-                </el-col>
-                <!-- torrent stats end -->
-
-                <!-- peer stats begin -->
-                <el-col :span="8">
-                    <el-card class="box-card index-card">
-                        <div class="number">{{ index.peer.total }}</div>
+                        <div class="number">{{ index.peer }}</div>
                         <div class="comment">Total Peers</div>
                     </el-card>
                 </el-col>
 
                 <el-col :span="8">
                     <el-card class="box-card index-card">
-                        <div class="number">{{ index.peer.seeder }}</div>
-                        <div class="comment">Seeder Count</div>
-                    </el-card>
-                </el-col>
-
-                <el-col :span="8">
-                    <el-card class="box-card index-card">
-                        <div class="number">{{ index.peer.leecher }}</div>
-                        <div class="comment">Leecher Count</div>
-                    </el-card>
-                </el-col>
-                <!-- peer stats end -->
-
-                <!-- traffic stats begin -->
-                <el-col :span="8">
-                    <el-card class="box-card index-card">
-                        <div class="number">{{ index.traffic.total }}</div>
+                        <div class="number">{{ index.traffic }}</div>
                         <div class="comment">Total Traffic</div>
                     </el-card>
                 </el-col>
-
-                <el-col :span="8">
-                    <el-card class="box-card index-card">
-                        <div class="number">{{ index.traffic.upload }}</div>
-                        <div class="comment">Uploaded</div>
-                    </el-card>
-                </el-col>
-
-                <el-col :span="8">
-                    <el-card class="box-card index-card">
-                        <div class="number">{{ index.traffic.download }}</div>
-                        <div class="comment">Downloaded</div>
-                    </el-card>
-                </el-col>
-                <!-- traffic stats end -->
+                <!-- stats end -->
             </el-row>
         </div>
 
@@ -120,7 +70,7 @@
             </el-col>
 
             <el-col :span="20">
-                <el-table :data="hot" stripe style="width: 100%; min-height: 100vh;">
+                <el-table :data="hot" stripe style="width: 100%; min-height: 64vh;">
                     <el-table-column fixed prop="info_hash" label="Hash"></el-table-column>
                     <el-table-column prop="seeder_count" label="Seeder" width="120"></el-table-column>
                     <el-table-column prop="leecher_count" label="Leecher" width="120"></el-table-column>
