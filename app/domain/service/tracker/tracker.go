@@ -280,23 +280,26 @@ func updateTorrentStats(ctx context.Context, infoHash string, snatcherCountIncr 
 func checkConnectable(ipv4 string, ipv6 string, port uint32) bool {
 	connectable := false
 
-	if ipv6 != "" {
-		if _, err := net.DialTimeout(
-			"tcp6",
-			fmt.Sprintf("[%v]:%v", ipv6, port),
-			5*time.Second,
-		); err == nil {
-			connectable = true
+	rand.Seed(time.Now().Unix())
+	if rand.Intn(1000) > 800 {
+		if ipv6 != "" {
+			if _, err := net.DialTimeout(
+				"tcp6",
+				fmt.Sprintf("[%v]:%v", ipv6, port),
+				time.Second,
+			); err == nil {
+				connectable = true
+			}
 		}
-	}
 
-	if !connectable && ipv4 != "" {
-		if _, err := net.DialTimeout(
-			"tcp4",
-			fmt.Sprintf("%v:%v", ipv4, port),
-			5*time.Second,
-		); err == nil {
-			connectable = true
+		if !connectable && ipv4 != "" {
+			if _, err := net.DialTimeout(
+				"tcp4",
+				fmt.Sprintf("%v:%v", ipv4, port),
+				time.Second,
+			); err == nil {
+				connectable = true
+			}
 		}
 	}
 
