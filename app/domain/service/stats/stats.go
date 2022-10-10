@@ -90,7 +90,11 @@ func getPeerCount(ctx context.Context) uint64 {
 		return cacheCount
 	}
 
-	realCount := uint64(len(keys))
+	var realCount uint64
+	for _, key := range keys {
+		tmpCount, _ := db.RDB.HLen(ctx, key).Uint64()
+		realCount = realCount + tmpCount
+	}
 	db.RDB.Set(ctx, constants.TrackerPeerStatsKey, realCount, 0)
 
 	return realCount
