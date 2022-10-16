@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	statsReq "github.com/HunterXuan/bt/app/controller/request/stats"
 	statsResp "github.com/HunterXuan/bt/app/controller/response/stats"
-	"github.com/HunterXuan/bt/app/domain/model"
 	"github.com/HunterXuan/bt/app/domain/service"
 	"github.com/HunterXuan/bt/app/infra/constants"
 	"github.com/HunterXuan/bt/app/infra/db"
+	"github.com/HunterXuan/bt/app/infra/util/convert"
 	customError "github.com/HunterXuan/bt/app/infra/util/error"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -107,21 +107,18 @@ func getHotStats(ctx context.Context) []statsResp.HotTorrentItem {
 
 	var torrents []statsResp.HotTorrentItem
 	for _, infoHash := range hotInfoHashes {
-		torrentStr, err := db.RDB.Get(ctx, service.GenTorrentInfoKey(infoHash)).Result()
+		torrentInfo, err := db.RDB.HGetAll(ctx, service.GenTorrentInfoKey(infoHash)).Result()
 		if err != nil {
 			continue
 		}
 
-		var torrent model.Torrent
-		if err := json.Unmarshal([]byte(torrentStr), &torrent); err == nil {
-			torrents = append(torrents, statsResp.HotTorrentItem{
-				InfoHash:      infoHash,
-				SeederCount:   torrent.SeederCount,
-				LeecherCount:  torrent.LeecherCount,
-				SnatcherCount: torrent.SnatcherCount,
-				MetaInfo:      torrent.MetaInfo,
-			})
-		}
+		torrents = append(torrents, statsResp.HotTorrentItem{
+			InfoHash:      infoHash,
+			SeederCount:   convert.ParseStringToUint64(torrentInfo[constants.TorrentSeederCountKey]),
+			LeecherCount:  convert.ParseStringToUint64(torrentInfo[constants.TorrentLeecherCountKey]),
+			SnatcherCount: convert.ParseStringToUint64(torrentInfo[constants.TorrentSnatcherCountKey]),
+			MetaInfo:      torrentInfo[constants.TorrentMetaInfoKey],
+		})
 	}
 
 	return torrents
