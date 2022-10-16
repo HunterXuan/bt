@@ -70,7 +70,7 @@ func (d *DHT) Run() {
 
 			if jsonInfo, err := json.Marshal(info); err != nil {
 				log.Println("DHT marshal info err:", infoHash, err)
-			} else if err := db.RDB.Set(context.Background(), service.GenTorrentMetaInfoKey(infoHash), jsonInfo, 0); err != nil {
+			} else if err := db.RDB.HSet(context.Background(), service.GenTorrentInfoKey(infoHash), constants.TorrentMetaInfoKey, jsonInfo, 0); err != nil {
 				log.Println("DHT update info err:", infoHash, err)
 			} else {
 				log.Println("DHT update info success:", infoHash)
@@ -85,7 +85,7 @@ func getHotTorrents() model.TorrentSlice {
 	ctx := context.Background()
 	limit := 16
 
-	hotInfoHashes, err := db.RDB.ZRange(ctx, constants.TorrentHotSetKey, 0, constants.TorrentHotSetCapacity).Result()
+	hotInfoHashes, err := db.RDB.ZRange(ctx, constants.ActiveTorrentSetKey, 0, constants.TorrentHotCapacity*5).Result()
 	if err != nil {
 		return nil
 	}

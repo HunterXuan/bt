@@ -41,7 +41,7 @@ func UpdateStatsCache() error {
 func getStatsFromCache(ctx *gin.Context) (*statsResp.AllStatsResponse, error) {
 	var stats *statsResp.AllStatsResponse
 
-	val, err := db.RDB.Get(ctx, constants.TrackerStatsCacheKey).Result()
+	val, err := db.RDB.Get(ctx, constants.StatsCacheKey).Result()
 	if err != nil {
 		log.Println("getStatsFromCache Err:", err)
 		return nil, err
@@ -62,7 +62,7 @@ func setStatsToCache(ctx context.Context, stats *statsResp.AllStatsResponse) err
 		return err
 	}
 
-	_, err = db.RDB.Set(ctx, constants.TrackerStatsCacheKey, bytes, 0).Result()
+	_, err = db.RDB.Set(ctx, constants.StatsCacheKey, bytes, 0).Result()
 	if err != nil {
 		log.Println("setStatsToCache Err:", err)
 	}
@@ -71,42 +71,36 @@ func setStatsToCache(ctx context.Context, stats *statsResp.AllStatsResponse) err
 }
 
 func getTorrentCount(ctx context.Context) uint64 {
-	keys, err := db.RDB.Keys(ctx, constants.TrackerTorrentCountPattern).Result()
+	realCount, err := db.RDB.ZCard(ctx, constants.ActiveTorrentSetKey).Uint64()
 	if err != nil {
-		cacheCount, _ := db.RDB.Get(ctx, constants.TrackerTorrentStatsKey).Uint64()
+		cacheCount, _ := db.RDB.HGet(ctx, constants.StatsKey, constants.StatsTorrentCountKey).Uint64()
 		return cacheCount
 	}
 
-	realCount := uint64(len(keys))
-	db.RDB.Set(ctx, constants.TrackerTorrentStatsKey, realCount, 0)
+	db.RDB.HSet(ctx, constants.StatsKey, constants.StatsTorrentCountKey, realCount)
 
 	return realCount
 }
 
 func getPeerCount(ctx context.Context) uint64 {
-	keys, err := db.RDB.Keys(ctx, constants.TrackerPeerCountPattern).Result()
+	realCount, err := db.RDB.ZCard(ctx, constants.ActivePeerSetKey).Uint64()
 	if err != nil {
-		cacheCount, _ := db.RDB.Get(ctx, constants.TrackerPeerStatsKey).Uint64()
+		cacheCount, _ := db.RDB.HGet(ctx, constants.StatsKey, constants.StatsPeerCountKey).Uint64()
 		return cacheCount
 	}
 
-	var realCount uint64
-	for _, key := range keys {
-		tmpCount, _ := db.RDB.HLen(ctx, key).Uint64()
-		realCount = realCount + tmpCount
-	}
-	db.RDB.Set(ctx, constants.TrackerPeerStatsKey, realCount, 0)
+	db.RDB.HSet(ctx, constants.StatsKey, constants.StatsPeerCountKey, realCount)
 
 	return realCount
 }
 
 func getTrafficCount(ctx context.Context) uint64 {
-	val, _ := db.RDB.Get(ctx, constants.TrackerTrafficStatsKey).Uint64()
+	val, _ := db.RDB.HGet(ctx, constants.StatsKey, constants.StatsTrafficCountKey).Uint64()
 	return val
 }
 
 func getHotStats(ctx context.Context) []statsResp.HotTorrentItem {
-	hotInfoHashes, err := db.RDB.ZRange(ctx, constants.TorrentHotSetKey, 0, constants.TorrentHotSetCapacity).Result()
+	hotInfoHashes, err := db.RDB.ZRange(ctx, constants.ActiveTorrentSetKey, 0, constants.TorrentHotCapacity).Result()
 	if err != nil {
 		return nil
 	}

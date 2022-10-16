@@ -17,6 +17,11 @@ func InitScheduler() {
 		log.Panicln("InitScheduler:", err)
 	}
 
+	_, err = Scheduler.AddJob("@every 15m", &job.Cleaner{})
+	if err != nil {
+		log.Panicln("InitScheduler:", err)
+	}
+
 	_, err = Scheduler.AddJob("@every 15m", &job.Stats{})
 	if err != nil {
 		log.Panicln("InitScheduler:", err)

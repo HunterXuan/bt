@@ -7,6 +7,7 @@ type Torrent struct {
 	SnatcherCount uint64
 	MetaInfo      string
 	CreatedAt     int64
+	LastActiveAt  int64
 }
 
 type TorrentSlice []Torrent

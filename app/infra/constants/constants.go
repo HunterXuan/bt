@@ -3,23 +3,29 @@ package constants
 import "time"
 
 const (
-	TorrentInfoTemplate                 = "torrent:%s:info"
-	TorrentSeederCountKeyTemplate       = "torrent:%s:seeder_count"
-	TorrentLeecherCountCountKeyTemplate = "torrent:%s:leecher_count"
-	TorrentSnatcherCountKeyTemplate     = "torrent:%s:snatcher_count"
-	TorrentMetaInfoKeyTemplate          = "torrent:%s:meta_info"
-	TorrentPeerKeyTemplate              = "torrent:%s:peer"
+	ActiveTorrentSetKey = "active:torrent"
+	ActivePeerSetKey    = "active:peer"
 
-	TorrentHotSetKey      = "hot:torrent"
-	TorrentHotSetCapacity = 1000
+	TorrentInfoKeyTemplate    = "torrent:%s:info"
+	TorrentPeerSetKeyTemplate = "torrent:%s:peer"
 
-	TrackerStatsCacheKey   = "tracker:stats:cache"
-	TrackerTorrentStatsKey = "tracker:stats:torrent"
-	TrackerPeerStatsKey    = "tracker:stats:peer"
-	TrackerTrafficStatsKey = "tracker:stats:traffic"
+	TorrentInfoHashKey      = "info_hash"
+	TorrentSeederCountKey   = "seeder_count"
+	TorrentLeecherCountKey  = "leecher_count"
+	TorrentSnatcherCountKey = "snatcher_count"
+	TorrentMetaInfoKey      = "meta_info"
+	TorrentCreatedAtKey     = "created_at"
+	TorrentLastActiveAt     = "active_at"
 
-	TrackerTorrentCountPattern = "torrent:*:info"
-	TrackerPeerCountPattern    = "torrent:*:peer"
+	TorrentHotCapacity = 100
+
+	StatsKey             = "stats"
+	StatsTorrentCountKey = "torrent"
+	StatsPeerCountKey    = "peer"
+	StatsTrafficCountKey = "traffic"
+	StatsCacheKey        = "stats:cache"
+
+	TrackerPeerCountPattern = "torrent:*:peer"
 
 	TorrentExpiration = time.Hour * 24
 	PeerExpiration    = time.Hour * 6
