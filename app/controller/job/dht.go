@@ -83,7 +83,7 @@ func (d *DHT) Run() {
 
 func getHotTorrents() model.TorrentSlice {
 	ctx := context.Background()
-	limit := 16
+	limit := 10
 
 	hotInfoHashes, err := db.RDB.ZRange(ctx, constants.ActiveTorrentSetKey, 0, constants.TorrentHotCapacity*5).Result()
 	if err != nil {
