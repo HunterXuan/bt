@@ -70,7 +70,7 @@ func (d *DHT) Run() {
 
 			if jsonInfo, err := json.Marshal(info); err != nil {
 				log.Println("DHT marshal info err:", infoHash, err)
-			} else if err := db.RDB.HSet(context.Background(), service.GenTorrentInfoKey(infoHash), constants.TorrentMetaInfoKey, jsonInfo, 0); err != nil {
+			} else if err := db.RDB.HSet(context.Background(), service.GenTorrentInfoKey(infoHash), constants.TorrentMetaInfoKey, jsonInfo); err != nil {
 				log.Println("DHT update info err:", infoHash, err)
 			} else {
 				log.Println("DHT update info success:", infoHash)
