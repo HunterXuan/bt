@@ -96,14 +96,15 @@ func getHotTorrents() model.TorrentSlice {
 			break
 		}
 
-		torrentStr, err := db.RDB.Get(ctx, service.GenTorrentInfoKey(infoHash)).Result()
+		torrentInfo, err := db.RDB.HGetAll(ctx, service.GenTorrentInfoKey(infoHash)).Result()
 		if err != nil {
 			continue
 		}
 
-		var torrent model.Torrent
-		if err := json.Unmarshal([]byte(torrentStr), &torrent); err == nil && len(torrent.MetaInfo) == 0 {
-			torrents = append(torrents, torrent)
+		if len(torrentInfo[constants.TorrentMetaInfoKey]) == 0 {
+			torrents = append(torrents, model.Torrent{
+				InfoHash: infoHash,
+			})
 		}
 	}
 
