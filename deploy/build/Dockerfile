@@ -4,7 +4,7 @@ COPY . /src
 
 WORKDIR /src
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bt .
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o bt .
 
 FROM golang:1.17-alpine
 
