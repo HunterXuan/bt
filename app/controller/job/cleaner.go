@@ -8,6 +8,7 @@ import (
 	"github.com/HunterXuan/bt/app/infra/db"
 	"github.com/go-redis/redis/v8"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -55,6 +56,32 @@ func (s *Cleaner) Run() {
 			db.RDB.ZRem(ctx, constants.ActivePeerSetKey, &redis.Z{
 				Member: deadPeer,
 			})
+		}
+	}
+
+	var usedMemory, totalSystemMemory float64
+	memoryInfo, err := db.RDB.Info(ctx, "MEMORY").Result()
+	if err == nil {
+		lines := strings.Split(memoryInfo, "\n")
+		for _, line := range lines {
+			parts := strings.Split(line, ":")
+			if len(parts) != 2 {
+				continue
+			}
+
+			if parts[0] == "used_memory" {
+				usedMemory, _ = strconv.ParseFloat(parts[1], 64)
+			}
+
+			if parts[0] == "total_system_memory" {
+				totalSystemMemory, _ = strconv.ParseFloat(parts[1], 64)
+			}
+		}
+
+		maximumValue := totalSystemMemory * 0.8
+		if usedMemory > 0 && totalSystemMemory > 0 && usedMemory > maximumValue {
+			log.Printf("since used memory (%v) exceed the maximum value (%v), start flushing...", usedMemory, maximumValue)
+			db.RDB.FlushDB(ctx)
 		}
 	}
 
