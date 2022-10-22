@@ -32,6 +32,8 @@ func (s *Cleaner) Run() {
 		for _, infoHash := range deadTorrentHashes {
 			db.RDB.HDel(ctx, service.GenTorrentInfoKey(infoHash))
 			if err := db.RDB.HGetAll(ctx, service.GenTorrentInfoKey(infoHash)).Err(); err == nil || err == redis.Nil {
+				log.Println("start clean dead torrent:", infoHash)
+
 				db.RDB.ZRem(ctx, constants.ActiveTorrentSetKey, &redis.Z{
 					Member: infoHash,
 				})
@@ -48,6 +50,8 @@ func (s *Cleaner) Run() {
 	}).Result()
 	if err == nil {
 		for _, deadPeer := range deadPeers {
+			log.Println("start clean dead peer:", deadPeer)
+
 			parts := strings.Split(deadPeer, ":")
 			if len(parts) == 2 {
 				db.RDB.HDel(ctx, service.GenPeerKey(parts[0]), parts[1])
