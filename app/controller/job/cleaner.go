@@ -85,7 +85,8 @@ func (s *Cleaner) Run() {
 		maximumValue := totalSystemMemory * 0.8
 		if usedMemory > 0 && totalSystemMemory > 0 && usedMemory > maximumValue {
 			log.Printf("since used memory (%v) exceed the maximum value (%v), start flushing...", usedMemory, maximumValue)
-			db.RDB.FlushDB(ctx)
+			res, err := db.RDB.FlushDB(context.Background()).Result()
+			log.Println("flush result:", res, err)
 		}
 	}
 
