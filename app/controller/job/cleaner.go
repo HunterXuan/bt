@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/HunterXuan/bt/app/domain/service"
+	"github.com/HunterXuan/bt/app/infra/config"
 	"github.com/HunterXuan/bt/app/infra/constants"
 	"github.com/HunterXuan/bt/app/infra/db"
 	"github.com/go-redis/redis/v8"
@@ -82,7 +83,11 @@ func (s *Cleaner) Run() {
 			}
 		}
 
-		maximumValue := totalSystemMemory * 0.7
+		flushRate := config.Config.GetFloat64("REDIS_FLUSH_RATE")
+		if flushRate <= 0 {
+			flushRate = 0.7
+		}
+		maximumValue := totalSystemMemory * flushRate
 		if usedMemory > 0 && totalSystemMemory > 0 && usedMemory > maximumValue {
 			log.Printf("since used memory (%v) exceed the maximum value (%v), start flushing...", usedMemory, maximumValue)
 			res, err := db.RDB.FlushDB(context.Background()).Result()
