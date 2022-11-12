@@ -14,7 +14,6 @@ import (
 	"github.com/HunterXuan/bt/app/infra/util/prob"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
-	"log"
 	"math/rand"
 	"net"
 	"time"
@@ -198,7 +197,11 @@ func handleStoppedEvent(ctx context.Context, peer *model.Peer, _ *trackerReq.Ann
 		Member: fmt.Sprintf("%v:%v", peer.InfoHash, peer.PeerID),
 	})
 
-	updateTorrentStats(ctx, peer.InfoHash, 0)
+	if peer.IsSeeder {
+		updateTorrentStats(ctx, peer.InfoHash, 0, -1, 0)
+	} else {
+		updateTorrentStats(ctx, peer.InfoHash, -1, 0, 0)
+	}
 
 	return nil
 }
@@ -215,7 +218,7 @@ func handleNormalEvent(ctx context.Context, peer *model.Peer, req *trackerReq.An
 	peer.LastActiveAt = time.Now().Unix()
 	if req.Event == "completed" {
 		peer.FinishedAt = time.Now().Unix()
-		updateTorrentStats(ctx, peer.InfoHash, 1)
+		updateTorrentStats(ctx, peer.InfoHash, -1, 1, 1)
 	}
 
 	peerStr, err := json.Marshal(peer)
@@ -260,18 +263,25 @@ func handleNewPeer(ctx context.Context, req *trackerReq.AnnounceRequest) error {
 		Member: fmt.Sprintf("%v:%v", req.InfoHash, req.PeerID),
 	})
 
-	updateTorrentStats(ctx, req.InfoHash, 0)
+	if currentPeer.IsSeeder {
+		updateTorrentStats(ctx, req.InfoHash, 0, 1, 0)
+	} else {
+		updateTorrentStats(ctx, req.InfoHash, 1, 0, 0)
+	}
 
 	return nil
 }
 
 // 更新种子数据
-func updateTorrentStats(ctx context.Context, infoHash string, snatcherCountIncr int64) {
+func updateTorrentStats(ctx context.Context, infoHash string, leecherCountIncr, seederCountIncr, snatcherCountIncr int64) {
+	if leecherCountIncr != 0 {
+		db.RDB.HIncrBy(ctx, service.GenTorrentInfoKey(infoHash), constants.TorrentLeecherCountKey, leecherCountIncr)
+	}
+	if seederCountIncr != 0 {
+		db.RDB.HIncrBy(ctx, service.GenTorrentInfoKey(infoHash), constants.TorrentSeederCountKey, seederCountIncr)
+	}
 	if snatcherCountIncr != 0 {
-		_, err := db.RDB.HIncrBy(ctx, service.GenTorrentInfoKey(infoHash), constants.TorrentSnatcherCountKey, snatcherCountIncr).Result()
-		if err != nil {
-			log.Println("snatcherCountIncr Err:", err)
-		}
+		db.RDB.HIncrBy(ctx, service.GenTorrentInfoKey(infoHash), constants.TorrentSnatcherCountKey, snatcherCountIncr)
 	}
 
 	if prob.IfProbGreaterThan(0.8) {
